@@ -39,7 +39,7 @@ def levenshtein_distance(s, t):
     # Return the final Levenshtein distance
     return dist[-1][-1]
 
-devs = ['B1', 'D1', 'B2', 'D2', 'C1', 'A2', 'A1', 'C2']
+devs = ['B1', 'D1x', 'B2', 'D2', 'C1', 'A2x', 'A1', 'C2']
 original_devs_arrange = "-".join(devs)
 
 
@@ -64,7 +64,9 @@ class EightQueensGA:
 
         for i in range(4):
 
-            # TODO: consider if it first time on schedule
+            # consider if it first time on schedule
+            if rota1[i][-1:] == "x" and rota2[i][-1:] == "x":
+                return 0
 
             # same dev
             if rota1[i] == rota2[i]: 
