@@ -7,6 +7,10 @@ POPULATION_SIZE = 100
 MUTATION_RATE = 0.01
 MAX_GENERATIONS = 1000
 
+def printI(individual):
+    print("Rota 1 ->",individual[:4])
+    print("Rota 2 ->",individual[4:])
+
 
 def levenshtein_distance(s, t):
     """
@@ -56,21 +60,23 @@ class EightQueensGA:
 
         conflicts = 0
         conflicts = conflicts + levenshtein_distance("-".join(individual), original_devs_arrange)
+        rota1, rota2 = individual[:4],individual[4:]
 
         for i in range(4):
 
             # TODO: consider if it first time on schedule
+
             # same dev
-            if individual[i] == individual[i+4]: 
+            if rota1[i] == rota2[i]: 
                 return 0
 
             # same boss
-            if individual[i][0] == individual[i+4][0]: 
-                conflicts = conflicts + 1
+            if rota1[i][0] == rota2[i][0]: 
+                return 0 #conflicts = conflicts + 1
             
             # adjacent boss
-            if individual[i][0] == individual[i+1][0] or (i+5<8 and individual[i][0] == individual[i+5][0]): 
-                conflicts = conflicts + 1
+            if i+1<4 and (rota1[i][0] == rota1[i+1][0] or rota2[i][0] == rota2[i+1][0]):
+                return 0 #conflicts = conflicts + 1
 
 
         return 1 / (conflicts + 1)
@@ -81,9 +87,54 @@ class EightQueensGA:
         return parent1, parent2
 
     def crossover(self, parent1, parent2):
-        crossover_point = random.randint(1, 6)
-        child1 = parent1[:crossover_point] + parent2[crossover_point:]
-        child2 = parent2[:crossover_point] + parent1[crossover_point:]
+        child1 = [None] * len(parent1)
+        child2 = [None] * len(parent2)
+        i = random.randint(0, len(parent1) - 1)
+
+        # Copy first i elements from parent1 into child1 and from parent2 into child2
+        for j in range(i):
+            child1[j] = parent1[j]
+            child2[j] = parent2[j]
+
+        # Add remaining unique elements from parent2 into child1 and from parent1 into child2
+        for element in parent2:
+            if element not in child1:
+                for j in range(i, len(child1)):
+                    if child1[j] is None:
+                        child1[j] = element
+                        break
+            if element not in child2:
+                for j in range(i, len(child2)):
+                    if child2[j] is None:
+                        child2[j] = element
+                        break
+
+        for element in parent1:
+            if element not in child2:
+                for j in range(i, len(child2)):
+                    if child2[j] is None:
+                        child2[j] = element
+                        break
+            if element not in child1:
+                for j in range(i, len(child1)):
+                    if child1[j] is None:
+                        child1[j] = element
+                        break
+
+        # Remove duplicate elements from child1
+        for j in range(i, len(child1)):
+            while child1[j] in child1[:j] + child1[j+1:]:
+                duplicate_index = child1.index(child1[j], j+1)
+                available_elements = set(parent1 + parent2) - set(child1)
+                child1[duplicate_index] = random.choice(list(available_elements))
+
+        # Remove duplicate elements from child2
+        for j in range(i, len(child2)):
+            while child2[j] in child2[:j] + child2[j+1:]:
+                duplicate_index = child2.index(child2[j], j+1)
+                available_elements = set(parent1 + parent2) - set(child2)
+                child2[duplicate_index] = random.choice(list(available_elements))
+
         return child1, child2
 
     def mutate(self, individual):
@@ -105,7 +156,7 @@ class EightQueensGA:
             if self.best_solution is None or self.fitness(self.best_solution) < best_fit_for_now:
                 best_for_now = self.population[self.fitness_scores.index(best_fit_for_now)]
                 self.best_solution = best_for_now
-                print("Best_Fit:", best_fit_for_now, "sol:", best_for_now)
+                print("Best_Fit:", best_fit_for_now)
 
             new_population = []
 
@@ -120,15 +171,14 @@ class EightQueensGA:
             self.population = new_population
 
     def print_solution(self):
-        print("Original:")
-        print(devs[:4])
-        print(devs[4:])
+        print("Original:", self.fitness(devs))
+        printI(devs)
         if self.best_solution is not None:
             print("Solution found with score.", self.fitness(self.best_solution))
-            print(self.best_solution[:4])
-            print(self.best_solution[4:])
+            printI(self.best_solution)
         else:
             print("No solution found.")
+
 
 
 ga = EightQueensGA()
