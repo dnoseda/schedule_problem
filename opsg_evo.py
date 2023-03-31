@@ -126,20 +126,19 @@ class EightQueensGA:
 
             # consider if it first time on schedule
             if rota1[i][-1:] == "x" and rota2[i][-1:] == "x":
-                return 0.0000001
+                conflicts = conflicts + 1000
 
             # same dev
             if rota1[i] == rota2[i]: 
-                return 0.0000001
+                conflicts = conflicts + 1000
 
             # same boss
             if rota1[i][0] == rota2[i][0]: 
-                return 0.0000001 #conflicts = conflicts + 1
+                conflicts = conflicts + 1000
             
             # adjacent boss
             if i+1<half_point and (rota1[i][0] == rota1[i+1][0] or rota2[i][0] == rota2[i+1][0]):
-                return 0.0000001 #conflicts = conflicts + 1
-
+                conflicts = conflicts + 1000
 
         return 1 / (conflicts + 1)
 
@@ -245,6 +244,11 @@ class EightQueensGA:
 
 
 ga = EightQueensGA()
-ga.evolve()
-ga.print_solution()
+try:
+    ga.evolve()
+    ga.print_solution()
+except KeyboardInterrupt:
+    ga.print_solution()
+    sys.exit(0)
+
 
