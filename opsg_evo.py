@@ -2,6 +2,7 @@ import random
 import time
 import sys
 from multiprocessing import Pool
+import csv
 
 
 start = time.time()
@@ -21,60 +22,45 @@ class bcolors:
 def printT(msg):
     print((time.time()-start), "-->",msg)
 
-POPULATION_SIZE = 100
-MUTATION_RATE = 0.01
-MAX_GENERATIONS = 1000
+POPULATION_SIZE = 1000
+MUTATION_RATE = 0.1
+MAX_GENERATIONS = 10000
 
 #devs = ['B1', 'D1x', 'B2', 'D2', 'C1', 'A2x', 'A1', 'C2']
-devs = ['A1','A2','A3x','A4','A5','A6','B1','B2','B3','B4','B5x','B6','C1x','C2','C3','C4','C5','C6','D1','D2','D3','D4x','D5','D6','E1','E2','E3x','E4','E5','E6','F1','F2','F3','F4','F5','F6','G1','G2x','G3','G4','G5','G6','H1','H2','H3x','H4x','H5','H6']
+devs = ['G5_','H2_','A6_','H6_','B4_','H4x','D2_','D4x','C1x','E3x','E6_','C5_','B2_','E4_','G4_','G2x','F4_','A4_','E1_','C2_','F1_','C6_','H1_','H5_','D5_','C4_','H3x','F3_','F2_','A1_','B1_','E5_','G3_','D3_','A2_','B3_','D1_','D6_','E2_','G1_','B6_','F6_','G6_','B5x','F5_','A3x','C3_','A5_']
 original_devs_arrange = "-".join(devs)
 half_point = int(len(devs)/2)
 
+
+def printL(l):
+    for i in l:
+        if i[0] == 'A':
+            print(bcolors.OKBLUE+"_"+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'B':
+            print(bcolors.OKGREEN+"_"+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'C':
+            print(bcolors.WARNING+"_"+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'D':
+            print(bcolors.FAIL+"_"+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'E':
+            print(bcolors.BOLD+"_"+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'F':
+            print(bcolors.UNDERLINE+"_"+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'G':
+            print("+"+i+", ", end="")
+        elif i[0] == 'H':
+            print("$"+i+", ", end="")
+        else:
+            print(i+", ", end="")
+
+    print("")
+
 def printI(individual):
     print("Rota 1 -> ",end="")
-    for i in individual[:half_point]:
-        if i[0] == 'A':
-            print(bcolors.OKBLUE+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'B':
-            print(bcolors.OKGREEN+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'C':
-            print(bcolors.WARNING+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'D':
-            print(bcolors.FAIL+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'E':
-            print(bcolors.BOLD+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'F':
-            print(bcolors.UNDERLINE+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'G':
-            print("+"+i+", ", end="")
-        elif i[0] == 'H':
-            print("$"+i+", ", end="")
-        else:
-            print(i+", ", end="")
-
-    print("")
+    printL(individual[:half_point])
 
     print("Rota 2 -> ",end="")
-    for i in individual[half_point:]:
-        if i[0] == 'A':
-            print(bcolors.OKBLUE+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'B':
-            print(bcolors.OKGREEN+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'C':
-            print(bcolors.WARNING+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'D':
-            print(bcolors.FAIL+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'E':
-            print(bcolors.BOLD+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'F':
-            print(bcolors.UNDERLINE+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'G':
-            print("+"+i+", ", end="")
-        elif i[0] == 'H':
-            print("$"+i+", ", end="")
-        else:
-            print(i+", ", end="")
-    print("")
+    printL(individual[half_point:])
 
 
 def levenshtein_distance(s, t):
@@ -105,8 +91,8 @@ def levenshtein_distance(s, t):
     return dist[-1][-1]
 
 
-def fitness(individual):
-    if "-".join(individual)== original_devs_arrange:
+def fitness(individual, is_original=False):
+    if not is_original and "-".join(individual)== original_devs_arrange:
         return 0.0000001
 
     conflicts = 0
@@ -140,10 +126,13 @@ class EightQueensGA:
         self.population = []
         self.fitness_scores = []
         self.best_solution = None
+        self.csv_writer = None
 
         for i in range(POPULATION_SIZE):
             individual = random.sample(devs, len(devs))
             self.population.append(individual)
+    def set_csv_writer(self, csv_writer):
+        self.csv_writer = csv_writer
 
     def select_parents(self):
         parent1 = random.choices(self.population, weights=self.fitness_scores)[0]
@@ -219,6 +208,8 @@ class EightQueensGA:
                 self.best_solution = self.population[self.fitness_scores.index(1)]
                 break
 
+            self.csv_writer.writerow(self.fitness_scores)
+
             fitness_scores_copy = self.fitness_scores.copy()
             fitness_scores_copy.sort(reverse=True)
             best_fit_for_now = fitness_scores_copy[0]
@@ -241,7 +232,7 @@ class EightQueensGA:
             self.population = new_population
 
     def print_solution(self):
-        print("Original:", fitness(devs))
+        print("Original:", fitness(devs, is_original=True))
         printI(devs)
         if self.best_solution is not None:
             print("Solution found with score.", fitness(self.best_solution))
@@ -252,12 +243,17 @@ class EightQueensGA:
 
 
 if __name__ == '__main__':
+    csv_file = open('output_'+str(random.sample(range(88888), 1)[0])+'.csv', 'w')
+    writer = csv.writer(csv_file)
     ga = EightQueensGA()
+    ga.set_csv_writer(writer)
     try:
         ga.evolve()
         ga.print_solution()
+        csv_file.close()
     except KeyboardInterrupt:
         ga.print_solution()
+        csv_file.close()
         sys.exit(0)
 
 
