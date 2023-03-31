@@ -8,6 +8,10 @@
 - [ ] Dynamic numbers. Set, middle. Randomness
 - [ ] Package managment. One file for individual, function to check boss and experience, another file for fitness, another file for evo algorithm, another to feed the inputs
 - [ ] Feed configuration from csv or xml right from opsgenie
+- [x] Colours
+- [ ] Create dict from names and bosess in csv
+- [ ] Log to csv every fitness value in order to play around with the values
+
 
 # Output with 46 devs:
 
