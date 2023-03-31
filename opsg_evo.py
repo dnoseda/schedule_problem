@@ -7,9 +7,14 @@ POPULATION_SIZE = 100
 MUTATION_RATE = 0.01
 MAX_GENERATIONS = 1000
 
+#devs = ['B1', 'D1x', 'B2', 'D2', 'C1', 'A2x', 'A1', 'C2']
+devs = ['A1','A2','A3x','A4','A5','A6','B1','B2','B3','B4','B5x','B6','C1x','C2','C3','C4','C5','C6','D1','D2','D3','D4x','D5','D6','E1','E2','E3x','E4','E5','E6','F1','F2','F3','F4','F5','F6','G1','G2x','G3','G4','G5','G6','H1','H2','H3x','H4x','H5','H6']
+original_devs_arrange = "-".join(devs)
+half_point = int(len(devs)/2)
+
 def printI(individual):
-    print("Rota 1 ->",individual[:4])
-    print("Rota 2 ->",individual[4:])
+    print("Rota 1 ->",individual[:half_point])
+    print("Rota 2 ->",individual[half_point:])
 
 
 def levenshtein_distance(s, t):
@@ -39,8 +44,6 @@ def levenshtein_distance(s, t):
     # Return the final Levenshtein distance
     return dist[-1][-1]
 
-devs = ['B1', 'D1x', 'B2', 'D2', 'C1', 'A2x', 'A1', 'C2']
-original_devs_arrange = "-".join(devs)
 
 
 class EightQueensGA:
@@ -50,35 +53,34 @@ class EightQueensGA:
         self.best_solution = None
 
         for i in range(POPULATION_SIZE):
-            individual = random.sample(devs, 8)
-#            print(individual[0:4], individual[4:8])
+            individual = random.sample(devs, len(devs))
             self.population.append(individual)
 
     def fitness(self, individual):
         if "-".join(individual)== original_devs_arrange:
-            return 0
+            return 0.0000001
 
         conflicts = 0
         conflicts = conflicts + levenshtein_distance("-".join(individual), original_devs_arrange)
-        rota1, rota2 = individual[:4],individual[4:]
+        rota1, rota2 = individual[:half_point],individual[half_point:]
 
-        for i in range(4):
+        for i in range(half_point):
 
             # consider if it first time on schedule
             if rota1[i][-1:] == "x" and rota2[i][-1:] == "x":
-                return 0
+                return 0.0000001
 
             # same dev
             if rota1[i] == rota2[i]: 
-                return 0
+                return 0.0000001
 
             # same boss
             if rota1[i][0] == rota2[i][0]: 
-                return 0 #conflicts = conflicts + 1
+                return 0.0000001 #conflicts = conflicts + 1
             
             # adjacent boss
-            if i+1<4 and (rota1[i][0] == rota1[i+1][0] or rota2[i][0] == rota2[i+1][0]):
-                return 0 #conflicts = conflicts + 1
+            if i+1<half_point and (rota1[i][0] == rota1[i+1][0] or rota2[i][0] == rota2[i+1][0]):
+                return 0.0000001 #conflicts = conflicts + 1
 
 
         return 1 / (conflicts + 1)
