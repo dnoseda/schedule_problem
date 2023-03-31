@@ -8,7 +8,35 @@ MUTATION_RATE = 0.01
 MAX_GENERATIONS = 1000
 
 
-devs = ["A1", "A2", "B1", "B2", "C1", "C2", "D1", "D2"]
+def levenshtein_distance(s, t):
+    """
+    Calculate the Levenshtein distance between two strings s and t using dynamic programming.
+    """
+    # Initialize a matrix of zeros with dimensions (len(s) + 1) x (len(t) + 1)
+    dist = [[0 for j in range(len(t) + 1)] for i in range(len(s) + 1)]
+
+    # Fill in the first row and column of the matrix
+    for i in range(1, len(s) + 1):
+        dist[i][0] = i
+    for j in range(1, len(t) + 1):
+        dist[0][j] = j
+
+    # Fill in the rest of the matrix
+    for j in range(1, len(t) + 1):
+        for i in range(1, len(s) + 1):
+            if s[i-1] == t[j-1]:
+                cost = 0
+            else:
+                cost = 1
+            dist[i][j] = min(dist[i-1][j] + 1,    # deletion
+                             dist[i][j-1] + 1,    # insertion
+                             dist[i-1][j-1] + cost) # substitution
+
+    # Return the final Levenshtein distance
+    return dist[-1][-1]
+
+devs = ['B1', 'D1', 'B2', 'D2', 'C1', 'A2', 'A1', 'C2']
+original_devs_arrange = "-".join(devs)
 
 
 class EightQueensGA:
@@ -23,21 +51,27 @@ class EightQueensGA:
             self.population.append(individual)
 
     def fitness(self, individual):
+        if "-".join(individual)== original_devs_arrange:
+            return 0
+
         conflicts = 0
+        conflicts = conflicts + levenshtein_distance("-".join(individual), original_devs_arrange)
 
         for i in range(4):
 
+            # TODO: consider if it first time on schedule
             # same dev
             if individual[i] == individual[i+4]: 
-                conflicts = conflicts + 1
+                return 0
 
             # same boss
             if individual[i][0] == individual[i+4][0]: 
                 conflicts = conflicts + 1
             
             # adjacent boss
-            if individual[i][0] == individual[i+1][0]: 
+            if individual[i][0] == individual[i+1][0] or (i+5<8 and individual[i][0] == individual[i+5][0]): 
                 conflicts = conflicts + 1
+
 
         return 1 / (conflicts + 1)
 
@@ -86,12 +120,16 @@ class EightQueensGA:
             self.population = new_population
 
     def print_solution(self):
+        print("Original:")
+        print(devs[:4])
+        print(devs[4:])
         if self.best_solution is not None:
             print("Solution found with score.", self.fitness(self.best_solution))
             print(self.best_solution[:4])
             print(self.best_solution[4:])
         else:
             print("No solution found.")
+
 
 ga = EightQueensGA()
 ga.evolve()
