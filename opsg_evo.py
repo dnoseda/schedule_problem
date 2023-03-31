@@ -24,15 +24,16 @@ def printT(msg):
 
 POPULATION_SIZE = 1000
 MUTATION_RATE = 0.1
-MAX_GENERATIONS = 10000
+MAX_GENERATIONS = 500
 
 #devs = ['B1', 'D1x', 'B2', 'D2', 'C1', 'A2x', 'A1', 'C2']
-devs = ['G5_','H2_','A6_','H6_','B4_','H4x','D2_','D4x','C1x','E3x','E6_','C5_','B2_','E4_','G4_','G2x','F4_','A4_','E1_','C2_','F1_','C6_','H1_','H5_','D5_','C4_','H3x','F3_','F2_','A1_','B1_','E5_','G3_','D3_','A2_','B3_','D1_','D6_','E2_','G1_','B6_','F6_','G6_','B5x','F5_','A3x','C3_','A5_']
+devs = [['GE01_','JH02_','JU03_','GE04_','JU05_','JU06_','DI07_','JH08_','DA09_','DI10x','DA11_','JH12_','JU13_','GE14_','GE15_','JU16_','JH17_','GE18_','GE19_','JU20_','JH21_','SA22_','DA23x','SE24_','DA25x','SE26_','DI27x','DA28x','PE29_','SA30_','PE31_','PE32_','JU33_','AN34_','AN35_','AN36_','SA37_','SA38_','SA39_','SA40_','AN41_','GE42_','DA43_','DI44_','PE45_','AN46_','AN47_']]
 original_devs_arrange = "-".join(devs)
 half_point = int(len(devs)/2)
 
 
 def printL(l):
+    """
     for i in l:
         if i[0] == 'A':
             print(bcolors.OKBLUE+"_"+i+bcolors.ENDC+", ", end="")
@@ -52,8 +53,10 @@ def printL(l):
             print("$"+i+", ", end="")
         else:
             print(i+", ", end="")
-
+    
     print("")
+    """
+    print(l)
 
 def printI(individual):
     print("Rota 1 -> ",end="")
@@ -110,11 +113,11 @@ def fitness(individual, is_original=False):
             conflicts = conflicts + 1000
 
         # same boss
-        if rota1[i][0] == rota2[i][0]: 
+        if rota1[i][:2] == rota2[i][:2]: 
             conflicts = conflicts + 1000
         
         # adjacent boss
-        if i+1<half_point and (rota1[i][0] == rota1[i+1][0] or rota2[i][0] == rota2[i+1][0]):
+        if i+1<half_point and (rota1[i][:2] == rota1[i+1][:2] or rota2[i][:2] == rota2[i+1][:2]):
             conflicts = conflicts + 1000
 
     return 1 / (conflicts + 1)
