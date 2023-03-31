@@ -1,7 +1,11 @@
 import random
+import time
 
 
+start = time.time()
 
+def printT(msg):
+    print((time.time()-start), "-->",msg)
 
 POPULATION_SIZE = 100
 MUTATION_RATE = 0.01
@@ -148,6 +152,7 @@ class EightQueensGA:
 
     def evolve(self):
         for i in range(MAX_GENERATIONS):
+            printT("start gen "+str(i))
             self.fitness_scores = [self.fitness(individual) for individual in self.population]
             if 1 in self.fitness_scores:
                 self.best_solution = self.population[self.fitness_scores.index(1)]
