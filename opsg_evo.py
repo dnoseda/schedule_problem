@@ -1,5 +1,7 @@
 import random
 import time
+import sys
+from multiprocessing import Pool
 
 
 start = time.time()
@@ -103,6 +105,35 @@ def levenshtein_distance(s, t):
     return dist[-1][-1]
 
 
+def fitness(individual):
+    if "-".join(individual)== original_devs_arrange:
+        return 0.0000001
+
+    conflicts = 0
+    conflicts = conflicts + levenshtein_distance("-".join(individual), original_devs_arrange)
+    rota1, rota2 = individual[:half_point],individual[half_point:]
+
+    for i in range(half_point):
+
+        # consider if it first time on schedule
+        if rota1[i][-1:] == "x" and rota2[i][-1:] == "x":
+            conflicts = conflicts + 1000
+
+        # same dev
+        if rota1[i] == rota2[i]: 
+            conflicts = conflicts + 1000
+
+        # same boss
+        if rota1[i][0] == rota2[i][0]: 
+            conflicts = conflicts + 1000
+        
+        # adjacent boss
+        if i+1<half_point and (rota1[i][0] == rota1[i+1][0] or rota2[i][0] == rota2[i+1][0]):
+            conflicts = conflicts + 1000
+
+    return 1 / (conflicts + 1)
+
+
 
 class EightQueensGA:
     def __init__(self):
@@ -113,34 +144,6 @@ class EightQueensGA:
         for i in range(POPULATION_SIZE):
             individual = random.sample(devs, len(devs))
             self.population.append(individual)
-
-    def fitness(self, individual):
-        if "-".join(individual)== original_devs_arrange:
-            return 0.0000001
-
-        conflicts = 0
-        conflicts = conflicts + levenshtein_distance("-".join(individual), original_devs_arrange)
-        rota1, rota2 = individual[:half_point],individual[half_point:]
-
-        for i in range(half_point):
-
-            # consider if it first time on schedule
-            if rota1[i][-1:] == "x" and rota2[i][-1:] == "x":
-                conflicts = conflicts + 1000
-
-            # same dev
-            if rota1[i] == rota2[i]: 
-                conflicts = conflicts + 1000
-
-            # same boss
-            if rota1[i][0] == rota2[i][0]: 
-                conflicts = conflicts + 1000
-            
-            # adjacent boss
-            if i+1<half_point and (rota1[i][0] == rota1[i+1][0] or rota2[i][0] == rota2[i+1][0]):
-                conflicts = conflicts + 1000
-
-        return 1 / (conflicts + 1)
 
     def select_parents(self):
         parent1 = random.choices(self.population, weights=self.fitness_scores)[0]
@@ -206,7 +209,12 @@ class EightQueensGA:
     def evolve(self):
         for i in range(MAX_GENERATIONS):
             printT("start gen "+str(i))
-            self.fitness_scores = [self.fitness(individual) for individual in self.population]
+
+            #self.fitness_scores = [fitness(individual) for individual in self.population]
+
+            with Pool() as pool:
+                self.fitness_scores = pool.map(fitness, self.population)
+
             if 1 in self.fitness_scores:
                 self.best_solution = self.population[self.fitness_scores.index(1)]
                 break
@@ -215,7 +223,7 @@ class EightQueensGA:
             fitness_scores_copy.sort(reverse=True)
             best_fit_for_now = fitness_scores_copy[0]
 
-            if self.best_solution is None or self.fitness(self.best_solution) < best_fit_for_now:
+            if self.best_solution is None or fitness(self.best_solution) < best_fit_for_now:
                 best_for_now = self.population[self.fitness_scores.index(best_fit_for_now)]
                 self.best_solution = best_for_now
                 print("Best_Fit:", best_fit_for_now)
@@ -233,22 +241,23 @@ class EightQueensGA:
             self.population = new_population
 
     def print_solution(self):
-        print("Original:", self.fitness(devs))
+        print("Original:", fitness(devs))
         printI(devs)
         if self.best_solution is not None:
-            print("Solution found with score.", self.fitness(self.best_solution))
+            print("Solution found with score.", fitness(self.best_solution))
             printI(self.best_solution)
         else:
             print("No solution found.")
 
 
 
-ga = EightQueensGA()
-try:
-    ga.evolve()
-    ga.print_solution()
-except KeyboardInterrupt:
-    ga.print_solution()
-    sys.exit(0)
+if __name__ == '__main__':
+    ga = EightQueensGA()
+    try:
+        ga.evolve()
+        ga.print_solution()
+    except KeyboardInterrupt:
+        ga.print_solution()
+        sys.exit(0)
 
 
