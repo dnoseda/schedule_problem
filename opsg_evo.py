@@ -4,6 +4,18 @@ import time
 
 start = time.time()
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 def printT(msg):
     print((time.time()-start), "-->",msg)
 
@@ -17,8 +29,50 @@ original_devs_arrange = "-".join(devs)
 half_point = int(len(devs)/2)
 
 def printI(individual):
-    print("Rota 1 ->",individual[:half_point])
-    print("Rota 2 ->",individual[half_point:])
+    print("Rota 1 -> ",end="")
+    for i in individual[:half_point]:
+        if i[0] == 'A':
+            print(bcolors.OKBLUE+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'B':
+            print(bcolors.OKGREEN+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'C':
+            print(bcolors.WARNING+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'D':
+            print(bcolors.FAIL+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'E':
+            print(bcolors.BOLD+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'F':
+            print(bcolors.UNDERLINE+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'G':
+            print("+"+i+", ", end="")
+        elif i[0] == 'H':
+            print("$"+i+", ", end="")
+        else:
+            print(i+", ", end="")
+
+    print("")
+
+    print("Rota 2 -> ",end="")
+    for i in individual[half_point:]:
+        if i[0] == 'A':
+            print(bcolors.OKBLUE+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'B':
+            print(bcolors.OKGREEN+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'C':
+            print(bcolors.WARNING+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'D':
+            print(bcolors.FAIL+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'E':
+            print(bcolors.BOLD+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'F':
+            print(bcolors.UNDERLINE+i+bcolors.ENDC+", ", end="")
+        elif i[0] == 'G':
+            print("+"+i+", ", end="")
+        elif i[0] == 'H':
+            print("$"+i+", ", end="")
+        else:
+            print(i+", ", end="")
+    print("")
 
 
 def levenshtein_distance(s, t):
