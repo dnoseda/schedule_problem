@@ -22,12 +22,12 @@ class bcolors:
 def printT(msg):
     print((time.time()-start), "-->",msg)
 
-POPULATION_SIZE = 1000
+POPULATION_SIZE = 100
 MUTATION_RATE = 0.1
-MAX_GENERATIONS = 500
+MAX_GENERATIONS = 10000
 
 #devs = ['B1', 'D1x', 'B2', 'D2', 'C1', 'A2x', 'A1', 'C2']
-devs = [['GE01_','JH02_','JU03_','GE04_','JU05_','JU06_','DI07_','JH08_','DA09_','DI10x','DA11_','JH12_','JU13_','GE14_','GE15_','JU16_','JH17_','GE18_','GE19_','JU20_','JH21_','SA22_','DA23x','SE24_','DA25x','SE26_','DI27x','DA28x','PE29_','SA30_','PE31_','PE32_','JU33_','AN34_','AN35_','AN36_','SA37_','SA38_','SA39_','SA40_','AN41_','GE42_','DA43_','DI44_','PE45_','AN46_','AN47_']]
+devs = ['A01_','B02_','C03_','A04_','C05_','C06_','D07_','B08_','E09_','D10x','E11_','B12_','C13_','A14_','A15_','C16_','B17_','A18_','A19_','C20_','B21_','F22_','E23x','G24_','E25x','G26_','D27x','E28x','H29_','F30_','H31_','H32_','C33_','I34_','I35_','I36_','F37_','F38_','F39_','F40_','I41_','A42_','E43_','D44_','H45_','I46_','I47_']
 original_devs_arrange = "-".join(devs)
 half_point = int(len(devs)/2)
 
@@ -61,9 +61,14 @@ def printL(l):
 def printI(individual):
     print("Rota 1 -> ",end="")
     printL(individual[:half_point])
+    print(",".join(individual[:half_point]))
 
     print("Rota 2 -> ",end="")
     printL(individual[half_point:])
+    print("CSV:")
+
+    print("\t".join(individual[:half_point]))
+    print("\t".join(individual[half_point:]))
 
 
 def levenshtein_distance(s, t):
@@ -106,19 +111,19 @@ def fitness(individual, is_original=False):
 
         # consider if it first time on schedule
         if rota1[i][-1:] == "x" and rota2[i][-1:] == "x":
-            conflicts = conflicts + 1000
+            return 0.0000001
 
         # same dev
         if rota1[i] == rota2[i]: 
-            conflicts = conflicts + 1000
+            return 0.0000001
 
         # same boss
         if rota1[i][:2] == rota2[i][:2]: 
-            conflicts = conflicts + 1000
+            return 0.0000001
         
         # adjacent boss
         if i+1<half_point and (rota1[i][:2] == rota1[i+1][:2] or rota2[i][:2] == rota2[i+1][:2]):
-            conflicts = conflicts + 1000
+            return 0.00001
 
     return 1 / (conflicts + 1)
 
@@ -200,7 +205,6 @@ class EightQueensGA:
 
     def evolve(self):
         for i in range(MAX_GENERATIONS):
-            printT("start gen "+str(i))
 
             #self.fitness_scores = [fitness(individual) for individual in self.population]
 
@@ -211,7 +215,7 @@ class EightQueensGA:
                 self.best_solution = self.population[self.fitness_scores.index(1)]
                 break
 
-            self.csv_writer.writerow(self.fitness_scores)
+            #self.csv_writer.writerow(self.fitness_scores)
 
             fitness_scores_copy = self.fitness_scores.copy()
             fitness_scores_copy.sort(reverse=True)
@@ -221,6 +225,8 @@ class EightQueensGA:
                 best_for_now = self.population[self.fitness_scores.index(best_fit_for_now)]
                 self.best_solution = best_for_now
                 print("Best_Fit:", best_fit_for_now)
+
+            printT("start gen "+str(i)+" -> "+str(fitness(self.best_solution)))
 
             new_population = []
 
@@ -246,17 +252,17 @@ class EightQueensGA:
 
 
 if __name__ == '__main__':
-    csv_file = open('output_'+str(random.sample(range(88888), 1)[0])+'.csv', 'w')
-    writer = csv.writer(csv_file)
+    #csv_file = open('output_'+str(random.sample(range(88888), 1)[0])+'.csv', 'w')
+    #writer = csv.writer(csv_file)
     ga = EightQueensGA()
-    ga.set_csv_writer(writer)
+    #ga.set_csv_writer(writer)
     try:
         ga.evolve()
         ga.print_solution()
-        csv_file.close()
+        #csv_file.close()
     except KeyboardInterrupt:
         ga.print_solution()
-        csv_file.close()
+        #csv_file.close()
         sys.exit(0)
 
 
