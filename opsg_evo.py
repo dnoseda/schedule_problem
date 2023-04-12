@@ -103,10 +103,7 @@ def fitness(individual, is_original=False):
     if not is_original and "-".join(individual)== original_devs_arrange:
         return 0.0000001
 
-    conflicts = 0
-    conflicts = conflicts + levenshtein_distance("-".join(individual), original_devs_arrange)
     rota1, rota2 = individual[:half_point],individual[half_point:]
-
     for i in range(half_point):
 
         # consider if it first time on schedule
@@ -122,8 +119,20 @@ def fitness(individual, is_original=False):
             return 0.0000001
         
         # adjacent boss
-        if i+1<half_point and (rota1[i][:2] == rota1[i+1][:2] or rota2[i][:2] == rota2[i+1][:2]):
-            return 0.00001
+        if i+1<half_point:
+            
+            if rota1[i][:2] in rota1[i+1][:2]:
+                return 0.00001            
+            if rota1[i][:2] in rota2[i+1][:2]:
+                return 0.00001
+
+            if rota2[i][:2] == rota2[i+1][:2]:
+                return 0.00001
+            if rota2[i][:2] == rota1[i+1][:2]:
+                return 0.00001
+            
+
+    conflicts = levenshtein_distance("-".join(individual), original_devs_arrange)
 
     return 1 / (conflicts + 1)
 
