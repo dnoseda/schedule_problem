@@ -98,6 +98,21 @@ def levenshtein_distance(s, t):
     # Return the final Levenshtein distance
     return dist[-1][-1]
 
+def is_adjacent(rota1, rota2, i):
+    a1, a2 = rota1[i][:1], rota1[i+1][:1]
+    b1, b2 = rota2[i][:1], rota2[i+1][:1]
+
+    res = False
+    
+    if a1 in [a2, b2]:
+        res = True            
+    
+    if not res and b1 in [b2, a2]:
+        res = True
+
+    #print("A1: {} A2 {} B1 {} B2 {} results in {}", a1, a2, b1, b2, res)
+    
+    return res
 
 def fitness(individual, is_original=False):
     if not is_original and "-".join(individual)== original_devs_arrange:
@@ -120,16 +135,8 @@ def fitness(individual, is_original=False):
         
         # adjacent boss
         if i+1<half_point:
-            
-            if rota1[i][:2] in rota1[i+1][:2]:
-                return 0.00001            
-            if rota1[i][:2] in rota2[i+1][:2]:
-                return 0.00001
-
-            if rota2[i][:2] == rota2[i+1][:2]:
-                return 0.00001
-            if rota2[i][:2] == rota1[i+1][:2]:
-                return 0.00001
+            if is_adjacent(rota1, rota2, i):
+                return 0.000001
             
 
     conflicts = levenshtein_distance("-".join(individual), original_devs_arrange)
@@ -239,13 +246,21 @@ class EightQueensGA:
 
             new_population = []
 
-            for j in range(int(POPULATION_SIZE / 2)):
+            random_percent = 0.5
+
+            population_from_parents = int(POPULATION_SIZE * (1-random_percent))
+
+            for j in range(int(population_from_parents / 2)):
                 parent1, parent2 = self.select_parents()
                 child1, child2 = self.crossover(parent1, parent2)
                 self.mutate(child1)
                 self.mutate(child2)
                 new_population.append(child1)
                 new_population.append(child2)
+
+            while len(new_population) < POPULATION_SIZE:                
+                individual = random.sample(devs, len(devs))
+                new_population.append(individual)
 
             self.population = new_population
 
@@ -266,6 +281,9 @@ if __name__ == '__main__':
     ga = EightQueensGA()
     #ga.set_csv_writer(writer)
     try:
+        #sol = ['A15_', 'B12_', 'E28x', 'A42_', 'A14_', 'B08_', 'I47_', 'B17_', 'C06_', 'F37_', 'D10x', 'E11_', 'B21_', 'F30_', 'A01_', 'C20_', 'D07_', 'I35_', 'I46_', 'A04_', 'G26_', 'F22_', 'B02_','G24_', 'C13_', 'H31_', 'D27x', 'E09_', 'C03_', 'F40_', 'I36_', 'A19_', 'E25x', 'D44_', 'H32_', 'E43_', 'C05_', 'C16_', 'F38_', 'A18_', 'H29_', 'H45_', 'C33_', 'F39_', 'I41_', 'E23x', 'I34_']
+        #print(fitness(sol))
+        #printI(sol)
         ga.evolve()
         ga.print_solution()
         #csv_file.close()
