@@ -24,7 +24,10 @@ def printT(msg):
 
 POPULATION_SIZE = 100
 MUTATION_RATE = 0.1
-MAX_GENERATIONS = 10000
+MAX_GENERATIONS = 2000
+RANDOM_SELECT = 0.5
+MAX_CHILDS = int(POPULATION_SIZE * (1-RANDOM_SELECT))
+
 
 #devs = ['B1', 'D1x', 'B2', 'D2', 'C1', 'A2x', 'A1', 'C2']
 devs = ['A01_','B02_','C03_','A04_','C05_','C06_','D07_','B08_','E09_','D10x','E11_','B12_','C13_','A14_','A15_','C16_','B17_','A18_','A19_','C20_','B21_','F22_','E23x','G24_','E25x','G26_','D27x','E28x','H29_','F30_','H31_','H32_','C33_','I34_','I35_','I36_','F37_','F38_','F39_','F40_','I41_','A42_','E43_','D44_','H45_','I46_','I47_']
@@ -98,9 +101,15 @@ def levenshtein_distance(s, t):
     # Return the final Levenshtein distance
     return dist[-1][-1]
 
+def get_boss(cel):
+    return cel[0]
+
+def is_new(cel):
+    return cel[-1:] == "x"
+
 def is_adjacent(rota1, rota2, i):
-    a1, a2 = rota1[i][:1], rota1[i+1][:1]
-    b1, b2 = rota2[i][:1], rota2[i+1][:1]
+    a1, a2 = get_boss(rota1[i]), get_boss(rota1[(i+1)%len(rota1)])
+    b1, b2 = get_boss(rota2[i]), get_boss(rota2[(i+1)%len(rota2)])
 
     res = False
     
@@ -117,12 +126,12 @@ def is_adjacent(rota1, rota2, i):
 def fitness(individual, is_original=False):
     if not is_original and "-".join(individual)== original_devs_arrange:
         return 0.0000001
-
+    conflicts = 0
     rota1, rota2 = individual[:half_point],individual[half_point:]
     for i in range(half_point):
 
         # consider if it first time on schedule
-        if rota1[i][-1:] == "x" and rota2[i][-1:] == "x":
+        if is_new(rota1[i]) and is_new(rota2[i]):
             return 0.0000001
 
         # same dev
@@ -130,16 +139,17 @@ def fitness(individual, is_original=False):
             return 0.0000001
 
         # same boss
-        if rota1[i][:2] == rota2[i][:2]: 
-            return 0.0000001
+        if get_boss(rota1[i]) == get_boss(rota2[i]): 
+            conflicts = conflicts + 1000
         
         # adjacent boss
-        if i+1<half_point:
-            if is_adjacent(rota1, rota2, i):
-                return 0.000001
-            
-
-    conflicts = levenshtein_distance("-".join(individual), original_devs_arrange)
+        if is_adjacent(rota1, rota2, i):
+            conflicts = conflicts + 1000
+    
+    # average leve is 100-200
+    leve = levenshtein_distance("-".join(individual), original_devs_arrange)
+    
+    conflicts = conflicts + leve
 
     return 1 / (conflicts + 1)
 
@@ -151,6 +161,7 @@ class EightQueensGA:
         self.fitness_scores = []
         self.best_solution = None
         self.csv_writer = None
+        self.first_best= 0
 
         for i in range(POPULATION_SIZE):
             individual = random.sample(devs, len(devs))
@@ -235,22 +246,24 @@ class EightQueensGA:
 
             fitness_scores_copy = self.fitness_scores.copy()
             fitness_scores_copy.sort(reverse=True)
-            best_fit_for_now = fitness_scores_copy[0]
+            best_fit_for_now = fitness_scores_copy[0]            
 
             if self.best_solution is None or fitness(self.best_solution) < best_fit_for_now:
                 best_for_now = self.population[self.fitness_scores.index(best_fit_for_now)]
                 self.best_solution = best_for_now
-                print("Best_Fit:", best_fit_for_now)
+                self.first_best = i
+                print("*")
 
-            printT("start gen "+str(i)+" -> "+str(fitness(self.best_solution)))
+            printT("start gen {} -> {} found on {}".format(
+                i,
+                fitness(self.best_solution),
+                self.first_best))
 
             new_population = []
 
-            random_percent = 0.5
+            
 
-            population_from_parents = int(POPULATION_SIZE * (1-random_percent))
-
-            for j in range(int(population_from_parents / 2)):
+            for j in range(int(MAX_CHILDS / 2)):
                 parent1, parent2 = self.select_parents()
                 child1, child2 = self.crossover(parent1, parent2)
                 self.mutate(child1)
@@ -269,6 +282,7 @@ class EightQueensGA:
         printI(devs)
         if self.best_solution is not None:
             print("Solution found with score.", fitness(self.best_solution))
+            print("Levesti: ", levenshtein_distance(devs, self.best_solution))
             printI(self.best_solution)
         else:
             print("No solution found.")
@@ -284,6 +298,7 @@ if __name__ == '__main__':
         #sol = ['A15_', 'B12_', 'E28x', 'A42_', 'A14_', 'B08_', 'I47_', 'B17_', 'C06_', 'F37_', 'D10x', 'E11_', 'B21_', 'F30_', 'A01_', 'C20_', 'D07_', 'I35_', 'I46_', 'A04_', 'G26_', 'F22_', 'B02_','G24_', 'C13_', 'H31_', 'D27x', 'E09_', 'C03_', 'F40_', 'I36_', 'A19_', 'E25x', 'D44_', 'H32_', 'E43_', 'C05_', 'C16_', 'F38_', 'A18_', 'H29_', 'H45_', 'C33_', 'F39_', 'I41_', 'E23x', 'I34_']
         #print(fitness(sol))
         #printI(sol)
+        print("Initial Max childs {} then {} are random".format(MAX_CHILDS, POPULATION_SIZE-MAX_CHILDS))
         ga.evolve()
         ga.print_solution()
         #csv_file.close()
