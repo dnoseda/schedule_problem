@@ -30,7 +30,7 @@ MAX_CHILDS = int(POPULATION_SIZE * (1-RANDOM_SELECT))
 
 
 #devs = ['B1', 'D1x', 'B2', 'D2', 'C1', 'A2x', 'A1', 'C2']
-devs = ['A01_','B02_','C03_','A04_','C05_','C06_','D07_','B08_','E09_','D10x','E11_','B12_','C13_','A14_','A15_','C16_','B17_','A18_','A19_','C20_','B21_','F22_','E23x','G24_','E25x','G26_','D27x','E28x','H29_','F30_','H31_','H32_','C33_','I34_','I35_','I36_','F37_','F38_','F39_','F40_','I41_','A42_','E43_','D44_','H45_','I46_','I47_']
+devs = ['A01_','B02_','C03_','A04_','C05_','C06_','D07_','B08_','E09_','D10x','E11_','B12_','C13_','A14_','A15_','C16_','B17_','A18_','A19_','C20_','B21_','F22_','E23x','G24_','E25x','G26_','D27x','E28x','H29_','F30_','H31_','H32_','C33_','I34_','I35_','I36_','F37_','F38_','F39_','F40_','I41_','A42_','E43_','D44_','H45_','I46_']
 original_devs_arrange = "-".join(devs)
 half_point = int(len(devs)/2)
 
@@ -72,6 +72,20 @@ def printI(individual):
 
     print("\t".join(individual[:half_point]))
     print("\t".join(individual[half_point:]))
+
+
+filename = None
+
+def save_solution(i, best_solution):
+    csv_file = open(filename, 'a')
+    writer = csv.writer(csv_file)
+    writer.writerow([
+        i,
+        best_solution, 
+        fitness(best_solution), 
+        levenshtein_distance(devs, best_solution)
+    ]+best_solution)   
+    csv_file.close()
 
 
 def levenshtein_distance(s, t):
@@ -252,12 +266,15 @@ class EightQueensGA:
                 best_for_now = self.population[self.fitness_scores.index(best_fit_for_now)]
                 self.best_solution = best_for_now
                 self.first_best = i
+                save_solution(i, self.best_solution)
                 print("*")
 
-            printT("start gen {} -> {} found on {}".format(
+            printT("start gen {} -> {} found on {} dist {}".format(
                 i,
                 fitness(self.best_solution),
-                self.first_best))
+                self.first_best,
+                levenshtein_distance(devs, self.best_solution)
+                ))
 
             new_population = []
 
@@ -290,8 +307,10 @@ class EightQueensGA:
 
 
 if __name__ == '__main__':
-    #csv_file = open('output_'+str(random.sample(range(88888), 1)[0])+'.csv', 'w')
+    #csv_file = open('output_'+str(random.sample(range(88888), 1)[0])+'.csv', 'a')
     #writer = csv.writer(csv_file)
+    filename = 'output_'+str(random.sample(range(88888), 1)[0])+'.csv'
+    print("filename: ", filename)
     ga = EightQueensGA()
     #ga.set_csv_writer(writer)
     try:
@@ -300,8 +319,7 @@ if __name__ == '__main__':
         #printI(sol)
         print("Initial Max childs {} then {} are random".format(MAX_CHILDS, POPULATION_SIZE-MAX_CHILDS))
         ga.evolve()
-        ga.print_solution()
-        #csv_file.close()
+        ga.print_solution()  
     except KeyboardInterrupt:
         ga.print_solution()
         #csv_file.close()
