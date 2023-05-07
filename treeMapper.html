@@ -1,0 +1,501 @@
+
+  <!DOCTYPE html>
+  <html lang="en">
+  <body>
+  <script src="https://unpkg.com/gojs@2.3.6/release/go.js"></script>
+ 
+  <div id="allSampleContent" class="p-4 w-full">
+    <script id="code">
+  // Use a TreeNode so that when a node is not visible because a parent is collapsed,
+  // connected links seem to be connected with the lowest visible parent node.
+  class TreeNode extends go.Node {
+    findVisibleNode() {
+      // redirect links to lowest visible "ancestor" in the tree
+      var n = this;
+      while (n !== null && !n.isVisible()) {
+        n = n.findTreeParentNode();
+      }
+      return n;
+    }
+  }
+  // end TreeNode
+
+  // Control how Mapping links are routed:
+  // - "Normal": normal routing with fixed fromEndSegmentLength & toEndSegmentLength
+  // - "ToGroup": so that the link routes stop at the edge of the group,
+  //     rather than going all the way to the connected nodes
+  // - "ToNode": so that they go all the way to the connected nodes
+  //     but only bend at the edge of the group
+  var ROUTINGSTYLE = "ToNode";
+
+  // If you want the regular routing where the Link.[from/to]EndSegmentLength controls
+  // the length of the horizontal segment adjacent to the port, don't use this class.
+  // Replace MappingLink with a go.Link in the "Mapping" link template.
+  class MappingLink extends go.Link {
+    getLinkPoint(node, port, spot, from, ortho, othernode, otherport) {
+      if (ROUTINGSTYLE !== "ToGroup") {
+        return super.getLinkPoint(node, port, spot, from, ortho, othernode, otherport);
+      } else {
+        var r = port.getDocumentBounds();
+        var group = node.containingGroup;
+        var b = (group !== null) ? group.actualBounds : node.actualBounds;
+        var op = othernode.getDocumentPoint(go.Spot.Center);
+        var x = (op.x > r.centerX) ? b.right : b.left;
+        return new go.Point(x, r.centerY);
+      }
+    }
+
+    computePoints() {
+      var result = super.computePoints();
+      if (result && ROUTINGSTYLE === "ToNode") {
+        var fn = this.fromNode;
+        var tn = this.toNode;
+        if (fn && tn) {
+          var fg = fn.containingGroup;
+          var fb = fg ? fg.actualBounds : fn.actualBounds;
+          var fpt = this.getPoint(0);
+          var tg = tn.containingGroup;
+          var tb = tg ? tg.actualBounds : tn.actualBounds;
+          var tpt = this.getPoint(this.pointsCount-1);
+          this.setPoint(1, new go.Point((fpt.x < tpt.x) ? fb.right : fb.left, fpt.y));
+          this.setPoint(this.pointsCount-2, new go.Point((fpt.x < tpt.x) ? tb.left : tb.right, tpt.y));
+        }
+      }
+      return result;
+    }
+  }
+  // end MappingLink
+
+
+    function init() {
+
+      // Since 2.2 you can also author concise templates with method chaining instead of GraphObject.make
+      // For details, see https://gojs.net/latest/intro/buildingObjects.html
+      const $ = go.GraphObject.make;  // for conciseness in defining templates
+
+      function handleTreeCollapseExpand(e) {
+        e.subject.each(n => {
+          n.findExternalTreeLinksConnected().each(l => l.invalidateRoute());
+        });
+      }
+
+      myDiagram =
+        $(go.Diagram, "myDiagramDiv",
+          {
+            "commandHandler.copiesTree": true,
+            "commandHandler.deletesTree": true,
+            "TreeCollapsed": handleTreeCollapseExpand,
+            "TreeExpanded": handleTreeCollapseExpand,
+            // newly drawn links always map a node in one tree to a node in another tree
+            "linkingTool.archetypeLinkData": { category: "Mapping" },
+            "linkingTool.linkValidation": checkLink,
+            "relinkingTool.linkValidation": checkLink,
+            "undoManager.isEnabled": true,
+            "ModelChanged": e => {
+              if (e.isTransactionFinished) {  // show the model data in the page's TextArea
+                document.getElementById("mySavedModel").textContent = e.model.toJson();
+              }
+            }
+          });
+
+      // All links must go from a node inside the "Left Side" Group to a node inside the "Right Side" Group.
+      function checkLink(fn, fp, tn, tp, link) {
+        // make sure the nodes are inside different Groups
+        if (fn.containingGroup === null || fn.containingGroup.data.key !== -1) return false;
+        if (tn.containingGroup === null || tn.containingGroup.data.key !== -2) return false;
+        //// optional limit to a single mapping link per node
+        //if (fn.linksConnected.any(l => l.category === "Mapping")) return false;
+        //if (tn.linksConnected.any(l => l.category === "Mapping")) return false;
+        return true;
+      }
+
+      // Each node in a tree is defined using the default nodeTemplate.
+      myDiagram.nodeTemplate =
+        $(TreeNode,
+          { movable: false, copyable: false, deletable: false },  // user cannot move an individual node
+          // no Adornment: instead change panel background color by binding to Node.isSelected
+          {
+            selectionAdorned: false,
+            background: "white",
+            mouseEnter: (e, node) => node.background = "aquamarine",
+            mouseLeave: (e, node) => node.background = node.isSelected ? "skyblue" : "white"
+          },
+          new go.Binding("background", "isSelected", s => s ? "skyblue" : "white").ofObject(),
+          // whether the user can start drawing a link from or to this node depends on which group it's in
+          new go.Binding("fromLinkable", "group", k => k === -1),
+          new go.Binding("toLinkable", "group", k => k === -2),
+          $("TreeExpanderButton",  // support expanding/collapsing subtrees
+            {
+              width: 14, height: 14,
+              "ButtonIcon.stroke": "white",
+              "ButtonIcon.strokeWidth": 2,
+              "ButtonBorder.fill": "goldenrod",
+              "ButtonBorder.stroke": null,
+              "ButtonBorder.figure": "Rectangle",
+              "_buttonFillOver": "darkgoldenrod",
+              "_buttonStrokeOver": null,
+              "_buttonFillPressed": null
+            }),
+          $(go.Panel, "Horizontal",
+            { position: new go.Point(16, 0) },
+            //// optional icon for each tree node
+            //$(go.Picture,
+            //  { width: 14, height: 14,
+            //    margin: new go.Margin(0, 4, 0, 0),
+            //    imageStretch: go.GraphObject.Uniform,
+            //    source: "images/defaultIcon.png" },
+            //  new go.Binding("source", "src")),
+            $(go.TextBlock,
+              new go.Binding("text", "key", s => "" + s))
+          )  // end Horizontal Panel
+        );  // end Node
+
+      // These are the links connecting tree nodes within each group.
+
+      myDiagram.linkTemplate = $(go.Link);  // without lines
+
+      myDiagram.linkTemplate =  // with lines
+        $(go.Link,
+          {
+            selectable: false,
+            routing: go.Link.Orthogonal,
+            fromEndSegmentLength: 4,
+            toEndSegmentLength: 4,
+            fromSpot: new go.Spot(0.001, 1, 7, 0),
+            toSpot: go.Spot.Left
+          },
+          $(go.Shape,
+            { stroke: "lightgray" }));
+
+      // These are the blue links connecting a tree node on the left side with one on the right side.
+      myDiagram.linkTemplateMap.add("Mapping",
+        $(MappingLink,
+          { isTreeLink: false, isLayoutPositioned: false, layerName: "Foreground" },
+          { fromSpot: go.Spot.Right, toSpot: go.Spot.Left },
+          { relinkableFrom: true, relinkableTo: true },
+          $(go.Shape, { stroke: "blue", strokeWidth: 2 })
+        ));
+
+      myDiagram.groupTemplate =
+        $(go.Group, "Auto",
+          { deletable: false, layout: makeGroupLayout() },
+          new go.Binding("position", "xy", go.Point.parse).makeTwoWay(go.Point.stringify),
+          new go.Binding("layout", "width", makeGroupLayout),
+          $(go.Shape, { fill: "white", stroke: "lightgray" }),
+          $(go.Panel, "Vertical",
+            { defaultAlignment: go.Spot.Left },
+            $(go.TextBlock,
+              { font: "bold 14pt sans-serif", margin: new go.Margin(5, 5, 0, 5) },
+              new go.Binding("text")),
+            $(go.Placeholder, { padding: 5 })
+          )
+        );
+
+      function makeGroupLayout() {
+        return $(go.TreeLayout,  // taken from samples/treeView.html
+          {
+            alignment: go.TreeLayout.AlignmentStart,
+            angle: 0,
+            compaction: go.TreeLayout.CompactionNone,
+            layerSpacing: 16,
+            layerSpacingParentOverlap: 1,
+            nodeIndentPastParent: 1.0,
+            nodeSpacing: 0,
+            setsPortSpot: false,
+            setsChildPortSpot: false,
+            // after the tree layout, change the width of each node so that all
+            // of the nodes have widths such that the collection has a given width
+            commitNodes: function() {  // method override must be function, not =>
+              go.TreeLayout.prototype.commitNodes.call(this);
+              if (ROUTINGSTYLE === "ToGroup") {
+                updateNodeWidths(this.group, this.group.data.width || 100);
+              }
+            }
+          });
+      }
+
+      // Create some random trees in each group
+      var nodeDataArray = [
+                {"isGroup":true,"key":"orig","text":"Left Side","xy":"0 0","width":150},
+                {"key":"or1","group":"orig", "isGroup":true},
+                {"key":"or2","group":"orig", "isGroup":true},
+                {"isGroup":true,"key":"best","text":"Right Side","xy":"300 0","width":150},
+                {"key":"br1","group":"best", "isGroup":true},
+                {"key":"br2","group":"best", "isGroup":true},
+
+{"key":"oA01_","group":"or1"},
+{"key":"oB02_","group":"or1"},
+{"key":"oC03_","group":"or1"},
+{"key":"oA04_","group":"or1"},
+{"key":"oC05_","group":"or1"},
+{"key":"oC06_","group":"or1"},
+{"key":"oD07_","group":"or1"},
+{"key":"oB08_","group":"or1"},
+{"key":"oE09_","group":"or1"},
+{"key":"oD10x","group":"or1"},
+{"key":"oE11_","group":"or1"},
+{"key":"oB12_","group":"or1"},
+{"key":"oC13_","group":"or1"},
+{"key":"oA14_","group":"or1"},
+{"key":"oA15_","group":"or1"},
+{"key":"oC16_","group":"or1"},
+{"key":"oB17_","group":"or1"},
+{"key":"oA18_","group":"or1"},
+{"key":"oA19_","group":"or1"},
+{"key":"oC20_","group":"or1"},
+{"key":"oB21_","group":"or1"},
+{"key":"oF22_","group":"or1"},
+{"key":"oE23x","group":"or1"},
+{"key":"oG24_","group":"or2"},
+{"key":"oE25x","group":"or2"},
+{"key":"oG26_","group":"or2"},
+{"key":"oD27x","group":"or2"},
+{"key":"oE28x","group":"or2"},
+{"key":"oH29_","group":"or2"},
+{"key":"oF30_","group":"or2"},
+{"key":"oH31_","group":"or2"},
+{"key":"oH32_","group":"or2"},
+{"key":"oC33_","group":"or2"},
+{"key":"oI34_","group":"or2"},
+{"key":"oI35_","group":"or2"},
+{"key":"oI36_","group":"or2"},
+{"key":"oF37_","group":"or2"},
+{"key":"oF38_","group":"or2"},
+{"key":"oF39_","group":"or2"},
+{"key":"oF40_","group":"or2"},
+{"key":"oI41_","group":"or2"},
+{"key":"oA42_","group":"or2"},
+{"key":"oE43_","group":"or2"},
+{"key":"oD44_","group":"or2"},
+{"key":"oH45_","group":"or2"},
+{"key":"oI46_","group":"or2"},
+{"key":"bB08_","group":"br1"},
+{"key":"bC20_","group":"br1"},
+{"key":"bI34_","group":"br1"},
+{"key":"bC06_","group":"br1"},
+{"key":"bF39_","group":"br1"},
+{"key":"bA42_","group":"br1"},
+{"key":"bI41_","group":"br1"},
+{"key":"bD10x","group":"br1"},
+{"key":"bI36_","group":"br1"},
+{"key":"bC16_","group":"br1"},
+{"key":"bB02_","group":"br1"},
+{"key":"bC03_","group":"br1"},
+{"key":"bH29_","group":"br1"},
+{"key":"bB12_","group":"br1"},
+{"key":"bD27x","group":"br1"},
+{"key":"bE25x","group":"br1"},
+{"key":"bA18_","group":"br1"},
+{"key":"bD44_","group":"br1"},
+{"key":"bF22_","group":"br1"},
+{"key":"bC05_","group":"br1"},
+{"key":"bI35_","group":"br1"},
+{"key":"bG26_","group":"br1"},
+{"key":"bA15_","group":"br1"},
+{"key":"bE28x","group":"br2"},
+{"key":"bA19_","group":"br2"},
+{"key":"bB17_","group":"br2"},
+{"key":"bH45_","group":"br2"},
+{"key":"bE09_","group":"br2"},
+{"key":"bB21_","group":"br2"},
+{"key":"bA14_","group":"br2"},
+{"key":"bE43_","group":"br2"},
+{"key":"bF30_","group":"br2"},
+{"key":"bG24_","group":"br2"},
+{"key":"bF38_","group":"br2"},
+{"key":"bE11_","group":"br2"},
+{"key":"bD07_","group":"br2"},
+{"key":"bF37_","group":"br2"},
+{"key":"bC33_","group":"br2"},
+{"key":"bI46_","group":"br2"},
+{"key":"bF40_","group":"br2"},
+{"key":"bH31_","group":"br2"},
+{"key":"bA04_","group":"br2"},
+{"key":"bC13_","group":"br2"},
+{"key":"bA01_","group":"br2"},
+{"key":"bH32_","group":"br2"},
+{"key":"bE23x","group":"br2"}
+];
+var linkDataArray = [
+{"from":"oA01_","to":"bA01_","category":"Mapping"},
+{"from":"oB02_","to":"bB02_","category":"Mapping"},
+{"from":"oC03_","to":"bC03_","category":"Mapping"},
+{"from":"oA04_","to":"bA04_","category":"Mapping"},
+{"from":"oC05_","to":"bC05_","category":"Mapping"},
+{"from":"oC06_","to":"bC06_","category":"Mapping"},
+{"from":"oD07_","to":"bD07_","category":"Mapping"},
+{"from":"oB08_","to":"bB08_","category":"Mapping"},
+{"from":"oE09_","to":"bE09_","category":"Mapping"},
+{"from":"oD10x","to":"bD10x","category":"Mapping"},
+{"from":"oE11_","to":"bE11_","category":"Mapping"},
+{"from":"oB12_","to":"bB12_","category":"Mapping"},
+{"from":"oC13_","to":"bC13_","category":"Mapping"},
+{"from":"oA14_","to":"bA14_","category":"Mapping"},
+{"from":"oA15_","to":"bA15_","category":"Mapping"},
+{"from":"oC16_","to":"bC16_","category":"Mapping"},
+{"from":"oB17_","to":"bB17_","category":"Mapping"},
+{"from":"oA18_","to":"bA18_","category":"Mapping"},
+{"from":"oA19_","to":"bA19_","category":"Mapping"},
+{"from":"oC20_","to":"bC20_","category":"Mapping"},
+{"from":"oB21_","to":"bB21_","category":"Mapping"},
+{"from":"oF22_","to":"bF22_","category":"Mapping"},
+{"from":"oE23x","to":"bE23x","category":"Mapping"},
+{"from":"oG24_","to":"bG24_","category":"Mapping"},
+{"from":"oE25x","to":"bE25x","category":"Mapping"},
+{"from":"oG26_","to":"bG26_","category":"Mapping"},
+{"from":"oD27x","to":"bD27x","category":"Mapping"},
+{"from":"oE28x","to":"bE28x","category":"Mapping"},
+{"from":"oH29_","to":"bH29_","category":"Mapping"},
+{"from":"oF30_","to":"bF30_","category":"Mapping"},
+{"from":"oH31_","to":"bH31_","category":"Mapping"},
+{"from":"oH32_","to":"bH32_","category":"Mapping"},
+{"from":"oC33_","to":"bC33_","category":"Mapping"},
+{"from":"oI34_","to":"bI34_","category":"Mapping"},
+{"from":"oI35_","to":"bI35_","category":"Mapping"},
+{"from":"oI36_","to":"bI36_","category":"Mapping"},
+{"from":"oF37_","to":"bF37_","category":"Mapping"},
+{"from":"oF38_","to":"bF38_","category":"Mapping"},
+{"from":"oF39_","to":"bF39_","category":"Mapping"},
+{"from":"oF40_","to":"bF40_","category":"Mapping"},
+{"from":"oI41_","to":"bI41_","category":"Mapping"},
+{"from":"oA42_","to":"bA42_","category":"Mapping"},
+{"from":"oE43_","to":"bE43_","category":"Mapping"},
+{"from":"oD44_","to":"bD44_","category":"Mapping"},
+{"from":"oH45_","to":"bH45_","category":"Mapping"},
+{"from":"oI46_","to":"bI46_","category":"Mapping"}
+];
+
+    
+      myDiagram.model = new go.GraphLinksModel(nodeDataArray, linkDataArray);
+    }
+
+   
+    window.addEventListener('DOMContentLoaded', init);
+
+
+    function updateNodeWidths(group, width) {
+      if (isNaN(width)) {
+        group.memberParts.each(n => {
+          if (n instanceof go.Node) n.width = NaN;  // back to natural width
+        });
+      } else {
+        var minx = Infinity;  // figure out minimum group width
+        group.memberParts.each(n => {
+          if (n instanceof go.Node) {
+            minx = Math.min(minx, n.actualBounds.x);
+          }
+        });
+        if (minx === Infinity) return;
+        var right = minx + width;
+        group.memberParts.each(n => {
+          if (n instanceof go.Node) n.width = Math.max(0, right - n.actualBounds.x);
+        });
+      }
+    }
+
+    // this function is only needed when changing the value of ROUTINGSTYLE dynamically
+    function changeStyle() {
+      // find user-chosen style name
+      var stylename = "ToGroup";
+      var radio = document.getElementsByName("MyRoutingStyle");
+      for (var i = 0; i < radio.length; i++) {
+        if (radio[i].checked) {
+          stylename = radio[i].value; break;
+        }
+      }
+      if (stylename !== ROUTINGSTYLE) {
+        myDiagram.commit(diag => {
+          ROUTINGSTYLE = stylename;
+          diag.findTopLevelGroups().each(g => updateNodeWidths(g, NaN));
+          diag.layoutDiagram(true);  // force layouts to happen again
+          diag.links.each(l => l.invalidateRoute());
+        });
+      }
+    }
+  </script>
+
+<div id="sample">
+  <div id="myDiagramDiv" style="border: 1px solid black; width: 1400px; height: 700px; position: relative; -webkit-tap-highlight-color: rgba(255, 255, 255, 0); cursor: auto;"><canvas tabindex="0" width="698" height="348" style="position: absolute; top: 0px; left: 0px; z-index: 2; user-select: none; touch-action: none; width: 698px; height: 348px; cursor: auto;">This text is displayed if your browser does not support the Canvas HTML element.</canvas><div style="position: absolute; overflow: auto; width: 698px; height: 348px; z-index: 1;"><div style="position: absolute; width: 1px; height: 1px;"></div></div></div>
+  
+  <textarea id="mySavedModel" style="width:100%;height:300px;visibility: hidden;">{ "class": "GraphLinksModel",
+  "nodeDataArray": [
+{"isGroup":true,"key":-1,"text":"Left Side","xy":"0 0","width":150},
+{"isGroup":true,"key":-2,"text":"Right Side","xy":"300 0","width":150},
+{"key":0,"group":-1},
+{"key":1,"group":-1},
+{"key":2,"group":-1},
+{"key":3,"group":-1},
+{"key":4,"group":-1},
+{"key":5,"group":-1},
+{"key":6,"group":-1},
+{"key":7,"group":-1},
+{"key":8,"group":-1},
+{"key":9,"group":-1},
+{"key":10,"group":-1},
+{"key":11,"group":-1},
+{"key":12,"group":-1},
+{"key":13,"group":-1},
+{"key":14,"group":-1},
+{"key":15,"group":-1},
+{"key":16,"group":-1},
+{"key":17,"group":-1},
+{"key":1000,"group":-2},
+{"key":1001,"group":-2},
+{"key":1002,"group":-2},
+{"key":1003,"group":-2},
+{"key":1004,"group":-2},
+{"key":1005,"group":-2},
+{"key":1006,"group":-2},
+{"key":1007,"group":-2},
+{"key":1008,"group":-2},
+{"key":1009,"group":-2},
+{"key":1010,"group":-2},
+{"key":1011,"group":-2},
+{"key":1012,"group":-2},
+{"key":1013,"group":-2},
+{"key":1014,"group":-2},
+{"key":1015,"group":-2}
+],
+  "linkDataArray": [
+{"from":6,"to":1012,"category":"Mapping"},
+{"from":4,"to":1006,"category":"Mapping"},
+{"from":9,"to":1004,"category":"Mapping"},
+{"from":1,"to":1009,"category":"Mapping"},
+{"from":14,"to":1010,"category":"Mapping"},
+{"from":0,"to":1},
+{"from":1,"to":2},
+{"from":2,"to":3},
+{"from":2,"to":4},
+{"from":4,"to":5},
+{"from":4,"to":6},
+{"from":4,"to":7},
+{"from":2,"to":8},
+{"from":2,"to":9},
+{"from":1,"to":10},
+{"from":10,"to":11},
+{"from":11,"to":12},
+{"from":11,"to":13},
+{"from":1,"to":14},
+{"from":14,"to":15},
+{"from":15,"to":16},
+{"from":15,"to":17},
+{"from":1000,"to":1001},
+{"from":1000,"to":1002},
+{"from":1000,"to":1003},
+{"from":1000,"to":1004},
+{"from":1000,"to":1005},
+{"from":1000,"to":1006},
+{"from":1006,"to":1007},
+{"from":1007,"to":1008},
+{"from":1007,"to":1009},
+{"from":1009,"to":1010},
+{"from":1009,"to":1011},
+{"from":1009,"to":1012},
+{"from":1009,"to":1013},
+{"from":1009,"to":1014},
+{"from":1009,"to":1015}
+]}</textarea>
+
+</div>
+  </body>
+  </html>

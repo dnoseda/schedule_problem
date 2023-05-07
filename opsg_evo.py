@@ -64,12 +64,11 @@ def printL(l):
 def printI(individual):
     print("Rota 1 -> ",end="")
     printL(individual[:half_point])
-    print(",".join(individual[:half_point]))
 
     print("Rota 2 -> ",end="")
     printL(individual[half_point:])
-    print("CSV:")
 
+    print("CSV:")
     print("\t".join(individual[:half_point]))
     print("\t".join(individual[half_point:]))
 
@@ -79,12 +78,13 @@ filename = None
 def save_solution(i, best_solution):
     csv_file = open(filename, 'a')
     writer = csv.writer(csv_file)
-    writer.writerow([
-        i,
-        best_solution, 
-        fitness(best_solution), 
-        levenshtein_distance(devs, best_solution)
-    ]+best_solution)   
+    row =  [
+            i,
+            fitness(best_solution), 
+            levenshtein_distance(devs, best_solution)
+        ]+best_solution
+    
+    writer.writerow(row)   
     csv_file.close()
 
 
@@ -301,6 +301,34 @@ class EightQueensGA:
             print("Solution found with score.", fitness(self.best_solution))
             print("Levesti: ", levenshtein_distance(devs, self.best_solution))
             printI(self.best_solution)
+            print("""
+                var nodeDataArray = [
+                {"isGroup":true,"key":"orig","text":"Left Side","xy":"0 0","width":150},
+                {"key":"or1","group":"orig", "isGroup":true},
+                {"key":"or2","group":"orig", "isGroup":true},
+                {"isGroup":true,"key":"best","text":"Right Side","xy":"300 0","width":150},
+                {"key":"br1","group":"best", "isGroup":true},
+                {"key":"br2","group":"best", "isGroup":true},
+            """)
+            rota1, rota2 = devs[:half_point],devs[half_point:]
+            listToPrint = []
+            for i in rota1:
+                listToPrint.append('{"key":"o'+i+'","group":"or1"}')
+            for i in rota2:
+                listToPrint.append('{"key":"o'+i+'","group":"or2"}')
+            rota1, rota2 = self.best_solution[:half_point],self.best_solution[half_point:]
+            for i in rota1:
+                listToPrint.append('{"key":"b'+i+'","group":"br1"}')
+            for i in rota2:
+                listToPrint.append('{"key":"b'+i+'","group":"br2"}')
+            print(",\n".join(listToPrint))
+            print('];\nvar linkDataArray = [')
+            listToPrint = []
+            for i in devs:
+                listToPrint.append('{"from":"o'+i+'","to":"b'+i+'","category":"Mapping"}')
+            print(",\n".join(listToPrint))
+
+            print("]")
         else:
             print("No solution found.")
 
