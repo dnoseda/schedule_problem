@@ -140,6 +140,7 @@ def is_adjacent(rota1, rota2, i):
 def fitness(individual, is_original=False):
     if not is_original and "-".join(individual)== original_devs_arrange:
         return 0.0000001
+    
     conflicts = 0
     rota1, rota2 = individual[:half_point],individual[half_point:]
     for i in range(half_point):
@@ -158,7 +159,7 @@ def fitness(individual, is_original=False):
         
         # adjacent boss
         if is_adjacent(rota1, rota2, i):
-            conflicts = conflicts + 1000
+            conflicts = conflicts + 1000        
     
     # average leve is 100-200
     leve = levenshtein_distance("-".join(individual), original_devs_arrange)
@@ -337,8 +338,29 @@ class EightQueensGA:
 if __name__ == '__main__':
     #csv_file = open('output_'+str(random.sample(range(88888), 1)[0])+'.csv', 'a')
     #writer = csv.writer(csv_file)
+    print("open file with currentschedule")
     filename = 'output_'+str(random.sample(range(88888), 1)[0])+'.csv'
     print("filename: ", filename)
+    import csv
+
+    filename_input = "people.csv"  # Replace with the name of your CSV file
+    leader_codes = {}  # Replace with the leader names and their codes
+
+    # Load the CSV file into a list of dictionaries
+    with open(filename_input, "r") as file:
+        reader = csv.DictReader(file)
+        people_list = list(reader)
+
+    # Convert the list of people into a dictionary with codes as keys
+    people_dict = {}
+    for i, person in enumerate(people_list):
+        if not leader_codes[person["leader"]] is None:
+            leader_codes[person["leader"]] = chr(len(leader_codes) + 64)
+        code = leader_codes[person["leader"]] + str(i+1) + ("x" if person["has experience"] == "yes" else "_")
+        people_dict[code] = person
+
+    print(people_dict)
+
     ga = EightQueensGA()
     #ga.set_csv_writer(writer)
     try:
