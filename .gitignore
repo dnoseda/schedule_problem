@@ -1,3 +1,5 @@
 *.csv
 out.log
 .DS_Store
+people.csv
+treeMapper.html
