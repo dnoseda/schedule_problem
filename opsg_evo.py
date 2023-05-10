@@ -34,6 +34,8 @@ devs = ['A01_','B02_','C03_','A04_','C05_','C06_','D07_','B08_','E09_','D10x','E
 original_devs_arrange = "-".join(devs)
 half_point = int(len(devs)/2)
 
+people_dict = {}
+
 
 def printL(l):
     """
@@ -91,6 +93,9 @@ def save_solution(i, best_solution):
 def levenshtein_distance(s, t):
     """
     Calculate the Levenshtein distance between two strings s and t using dynamic programming.
+    """
+    """
+    TODO: Add original index to every code and then just sum index difference between rota1 and rota2
     """
     # Initialize a matrix of zeros with dimensions (len(s) + 1) x (len(t) + 1)
     dist = [[0 for j in range(len(t) + 1)] for i in range(len(s) + 1)]
@@ -301,39 +306,63 @@ class EightQueensGA:
         if self.best_solution is not None:
             print("Solution found with score.", fitness(self.best_solution))
             print("Levesti: ", levenshtein_distance(devs, self.best_solution))
+            model_to_print = []
             printI(self.best_solution)
-            print("""
+            model_to_print.append("""
                 var nodeDataArray = [
-                {"isGroup":true,"key":"orig","text":"Left Side","xy":"0 0","width":150},
-                {"key":"or1","group":"orig", "isGroup":true},
-                {"key":"or2","group":"orig", "isGroup":true},
-                {"isGroup":true,"key":"best","text":"Right Side","xy":"300 0","width":150},
-                {"key":"br1","group":"best", "isGroup":true},
-                {"key":"br2","group":"best", "isGroup":true},
+                {"isGroup":true,"key":"orig","text":"Original","xy":"0 0","width":300},
+                {"key":"or1","group":"orig","text":"Rota 1", "isGroup":true},
+                {"key":"or2","group":"orig","text":"Rota 2", "isGroup":true},
+                {"isGroup":true,"key":"best","text":"Nueva","xy":"1500 0","width":300},
+                {"key":"br1","group":"best","text":"Rota 1", "isGroup":true},
+                {"key":"br2","group":"best","text":"Rota 2", "isGroup":true},
             """)
             rota1, rota2 = devs[:half_point],devs[half_point:]
-            listToPrint = []
-            for i in rota1:
-                listToPrint.append('{"key":"o'+i+'","group":"or1"}')
-            for i in rota2:
-                listToPrint.append('{"key":"o'+i+'","group":"or2"}')
-            rota1, rota2 = self.best_solution[:half_point],self.best_solution[half_point:]
-            for i in rota1:
-                listToPrint.append('{"key":"b'+i+'","group":"br1"}')
-            for i in rota2:
-                listToPrint.append('{"key":"b'+i+'","group":"br2"}')
-            print(",\n".join(listToPrint))
-            print('];\nvar linkDataArray = [')
-            listToPrint = []
-            for i in devs:
-                listToPrint.append('{"from":"o'+i+'","to":"b'+i+'","category":"Mapping"}')
-            print(",\n".join(listToPrint))
+            nrota1, nrota2 = self.best_solution[:half_point],self.best_solution[half_point:]
+            nodeListToPrint = []
+            linkToPrint = []
 
-            print("]")
+            for i, dev in enumerate(rota1):
+                nodeListToPrint.append('{"key":"o'+dev+'","group":"or1","text":"['+str(i)+'] '+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+')"}')
+                same_pos_r1 = i<len(nrota1) and dev == nrota1[i]
+                same_pos_r2 = i<len(nrota2) and dev == nrota2[i]
+                if not(same_pos_r1) and not(same_pos_r2):
+                   linkToPrint.append('{"from":"o'+dev+'","to":"b'+dev+'","category":"Mapping"}')
+
+            for i, dev in enumerate(rota2):
+                nodeListToPrint.append('{"key":"o'+dev+'","group":"or2","text":"['+str(i)+'] '+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+')"}')
+                same_pos_r1 = i<len(nrota1) and dev == nrota1[i]
+                same_pos_r2 = i<len(nrota2) and dev == nrota2[i]
+                if not(same_pos_r1) and not(same_pos_r2):
+                   linkToPrint.append('{"from":"o'+dev+'","to":"b'+dev+'","category":"Mapping"}')
+
+            for i, dev in enumerate(nrota1):
+                nodeListToPrint.append('{"key":"b'+dev+'","group":"br1","text":"['+str(i)+'] '+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+')"}')
+
+            for i, dev in enumerate(nrota2):
+                nodeListToPrint.append('{"key":"b'+dev+'","group":"br2","text":"['+str(i)+'] '+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+')"}')
+                
+            model_to_print.append(",\n".join(nodeListToPrint))
+            model_to_print.append('];\nvar linkDataArray = [')
+                        
+            model_to_print.append(",\n".join(linkToPrint))
+
+            model_to_print.append("]")
+            replace_content("treeMapper_template.html","\n".join(model_to_print))
         else:
             print("No solution found.")
 
+def replace_content(html_file, custom_text):
+    """
+    Replaces the placeholder ##CONTENT## with the specified custom text in an HTML file.
+    """
+    with open(html_file, "r") as file:
+        html = file.read()
+    html = html.replace("//##CONTENT##", custom_text)
+    with open("treeMapper.html", "w") as file:
+        file.write(html)
 
+# Example usage:
 
 if __name__ == '__main__':
     #csv_file = open('output_'+str(random.sample(range(88888), 1)[0])+'.csv', 'a')
@@ -352,14 +381,19 @@ if __name__ == '__main__':
         people_list = list(reader)
 
     # Convert the list of people into a dictionary with codes as keys
-    people_dict = {}
+    
+    devs = []
     for i, person in enumerate(people_list):
-        if not leader_codes[person["leader"]] is None:
+        if not (leader_codes.get(person["leader"]) != None):
             leader_codes[person["leader"]] = chr(len(leader_codes) + 64)
-        code = leader_codes[person["leader"]] + str(i+1) + ("x" if person["has experience"] == "yes" else "_")
+        code = leader_codes[person["leader"]] + str(i+1) + ("x" if person["has_experience"] == "yes" else "_")
         people_dict[code] = person
+        devs.append(code)
 
     print(people_dict)
+
+    original_devs_arrange = "-".join(devs)
+    half_point = int(len(devs)/2)
 
     ga = EightQueensGA()
     #ga.set_csv_writer(writer)
