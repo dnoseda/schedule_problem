@@ -22,11 +22,13 @@ class bcolors:
 def printT(msg):
     print((time.time()-start), "-->",msg)
 
-POPULATION_SIZE = 100
-MUTATION_RATE = 0.1
-MAX_GENERATIONS = 2000
+POPULATION_SIZE = 1300
+MUTATION_RATE = 0.5
+MAX_GENERATIONS = 10000
 RANDOM_SELECT = 0.5
 MAX_CHILDS = int(POPULATION_SIZE * (1-RANDOM_SELECT))
+
+LAST_MONTH_L = []
 
 
 #devs = ['B1', 'D1x', 'B2', 'D2', 'C1', 'A2x', 'A1', 'C2']
@@ -83,7 +85,7 @@ def save_solution(i, best_solution):
     row =  [
             i,
             fitness(best_solution), 
-            levenshtein_distance(devs, best_solution)
+            adhoc_distance(best_solution)
         ]+best_solution
     
     writer.writerow(row)   
@@ -93,9 +95,6 @@ def save_solution(i, best_solution):
 def levenshtein_distance(s, t):
     """
     Calculate the Levenshtein distance between two strings s and t using dynamic programming.
-    """
-    """
-    TODO: Add original index to every code and then just sum index difference between rota1 and rota2
     """
     # Initialize a matrix of zeros with dimensions (len(s) + 1) x (len(t) + 1)
     dist = [[0 for j in range(len(t) + 1)] for i in range(len(s) + 1)]
@@ -121,7 +120,7 @@ def levenshtein_distance(s, t):
     return dist[-1][-1]
 
 def get_boss(cel):
-    return cel[0]
+    return cel[2]
 
 def is_new(cel):
     return cel[-1:] == "x"
@@ -130,17 +129,28 @@ def is_adjacent(rota1, rota2, i):
     a1, a2 = get_boss(rota1[i]), get_boss(rota1[(i+1)%len(rota1)])
     b1, b2 = get_boss(rota2[i]), get_boss(rota2[(i+1)%len(rota2)])
 
-    res = False
-    
     if a1 in [a2, b2]:
-        res = True            
+        return True            
     
-    if not res and b1 in [b2, a2]:
-        res = True
+    if b1 in [b2, a2]:
+        return True
 
     #print("A1: {} A2 {} B1 {} B2 {} results in {}", a1, a2, b1, b2, res)
     
-    return res
+    return False
+
+
+def adhoc_distance(newlist):
+    """
+    check distance by sum of the differences with original pos in whatever rotation
+    """
+    distance = 0
+    for i, dev in enumerate(newlist):
+        original_pos = int(dev[0:2]) % half_point
+        new_pos = i % half_point
+        distance = distance + abs(original_pos - new_pos)
+    return distance
+    
 
 def fitness(individual, is_original=False):
     if not is_original and "-".join(individual)== original_devs_arrange:
@@ -149,6 +159,8 @@ def fitness(individual, is_original=False):
     conflicts = 0
     rota1, rota2 = individual[:half_point],individual[half_point:]
     for i in range(half_point):
+
+       
 
         # consider if it first time on schedule
         if is_new(rota1[i]) and is_new(rota2[i]):
@@ -165,11 +177,14 @@ def fitness(individual, is_original=False):
         # adjacent boss
         if is_adjacent(rota1, rota2, i):
             conflicts = conflicts + 1000        
+         
+        # discard solutions where first devs are from the last month
+        if i < len(LAST_MONTH_L):
+            if (rota1[i] in LAST_MONTH_L) or (rota2[i] in LAST_MONTH_L):
+                conflicts = conflicts + 100000
     
-    # average leve is 100-200
-    leve = levenshtein_distance("-".join(individual), original_devs_arrange)
-    
-    conflicts = conflicts + leve
+
+    conflicts = conflicts + adhoc_distance(individual)
 
     return 1 / (conflicts + 1)
 
@@ -182,6 +197,7 @@ class EightQueensGA:
         self.best_solution = None
         self.csv_writer = None
         self.first_best= 0
+        self.best_fitness = 0
 
         for i in range(POPULATION_SIZE):
             individual = random.sample(devs, len(devs))
@@ -268,18 +284,20 @@ class EightQueensGA:
             fitness_scores_copy.sort(reverse=True)
             best_fit_for_now = fitness_scores_copy[0]            
 
-            if self.best_solution is None or fitness(self.best_solution) < best_fit_for_now:
+            if self.best_solution is None or self.best_fitness < best_fit_for_now:
                 best_for_now = self.population[self.fitness_scores.index(best_fit_for_now)]
                 self.best_solution = best_for_now
+                self.best_fitness = best_fit_for_now
                 self.first_best = i
-                save_solution(i, self.best_solution)
+                save_solution(i, self.best_solution)                
                 print("*")
+                
 
             printT("start gen {} -> {} found on {} dist {}".format(
                 i,
-                fitness(self.best_solution),
+                self.best_fitness,
                 self.first_best,
-                levenshtein_distance(devs, self.best_solution)
+                adhoc_distance(self.best_solution)
                 ))
 
             new_population = []
@@ -305,7 +323,7 @@ class EightQueensGA:
         printI(devs)
         if self.best_solution is not None:
             print("Solution found with score.", fitness(self.best_solution))
-            print("Levesti: ", levenshtein_distance(devs, self.best_solution))
+            print("AdhocDist: ", adhoc_distance(self.best_solution))
             model_to_print = []
             printI(self.best_solution)
             model_to_print.append("""
@@ -323,24 +341,36 @@ class EightQueensGA:
             linkToPrint = []
 
             for i, dev in enumerate(rota1):
-                nodeListToPrint.append('{"key":"o'+dev+'","group":"or1","text":"['+str(i)+'] '+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+')"}')
+                is_last_month =""
+                if dev in LAST_MONTH_L:
+                    is_last_month = "*"
+                nodeListToPrint.append('{"key":"o'+dev+'","group":"or1","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
                 same_pos_r1 = i<len(nrota1) and dev == nrota1[i]
                 same_pos_r2 = i<len(nrota2) and dev == nrota2[i]
                 if not(same_pos_r1) and not(same_pos_r2):
                    linkToPrint.append('{"from":"o'+dev+'","to":"b'+dev+'","category":"Mapping"}')
 
             for i, dev in enumerate(rota2):
-                nodeListToPrint.append('{"key":"o'+dev+'","group":"or2","text":"['+str(i)+'] '+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+')"}')
+                is_last_month =""
+                if dev in LAST_MONTH_L:
+                    is_last_month = "*"
+                nodeListToPrint.append('{"key":"o'+dev+'","group":"or2","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
                 same_pos_r1 = i<len(nrota1) and dev == nrota1[i]
                 same_pos_r2 = i<len(nrota2) and dev == nrota2[i]
                 if not(same_pos_r1) and not(same_pos_r2):
                    linkToPrint.append('{"from":"o'+dev+'","to":"b'+dev+'","category":"Mapping"}')
 
             for i, dev in enumerate(nrota1):
-                nodeListToPrint.append('{"key":"b'+dev+'","group":"br1","text":"['+str(i)+'] '+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+')"}')
+                is_last_month =""
+                if dev in LAST_MONTH_L:
+                    is_last_month = "*"
+                nodeListToPrint.append('{"key":"b'+dev+'","group":"br1","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
 
             for i, dev in enumerate(nrota2):
-                nodeListToPrint.append('{"key":"b'+dev+'","group":"br2","text":"['+str(i)+'] '+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+')"}')
+                is_last_month =""
+                if dev in LAST_MONTH_L:
+                    is_last_month = "*"
+                nodeListToPrint.append('{"key":"b'+dev+'","group":"br2","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
                 
             model_to_print.append(",\n".join(nodeListToPrint))
             model_to_print.append('];\nvar linkDataArray = [')
@@ -383,17 +413,36 @@ if __name__ == '__main__':
     # Convert the list of people into a dictionary with codes as keys
     
     devs = []
+    dev_by_name = {}
     for i, person in enumerate(people_list):
         if not (leader_codes.get(person["leader"]) != None):
-            leader_codes[person["leader"]] = chr(len(leader_codes) + 64)
-        code = leader_codes[person["leader"]] + str(i+1) + ("x" if person["has_experience"] == "yes" else "_")
+            leader_codes[person["leader"]] = chr(len(leader_codes) + 65)
+        code =  "{:02d}{}{}{}".format(
+                i,
+                leader_codes[person["leader"]],
+                str(i+1),
+                ("_" if person["has_experience"] == "TRUE" else "x")
+        )
         people_dict[code] = person
+        dev_by_name[person["name"]] = code
         devs.append(code)
 
     print(people_dict)
 
     original_devs_arrange = "-".join(devs)
     half_point = int(len(devs)/2)
+
+   
+    # Load the CSV file into a list of dictionaries
+    with open("last_month.csv", "r") as file:
+        reader = csv.DictReader(file)
+        last_month = list(reader)
+
+    for lm in last_month:
+        LAST_MONTH_L.append(dev_by_name[lm["name"]])
+
+    print(LAST_MONTH_L)
+
 
     ga = EightQueensGA()
     #ga.set_csv_writer(writer)
