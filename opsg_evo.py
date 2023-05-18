@@ -3,7 +3,9 @@ import time
 import sys
 from multiprocessing import Pool
 import csv
-from jinja2 import Template
+#from jinja2 import Template
+
+#from openpyxl.formula import Formula
 
 start = time.time()
 
@@ -215,16 +217,14 @@ class EightQueensGA:
         return parent1, parent2
 
     def crossover(self, p1, p2):
-        i = random.randint(0, len(p1) - 1)        
+        #i = random.randint(0, len(p1) - 1)        
+        i = half_point
         
         child1 = p1[:i]
-        child2 = p2[:i]
+        child2 = p2[:i]        
         
-        restP2 = set(p2) - set(child1)
-        restP1 = set(p1) - set(child2)
-
-        child1 = child1 + list(restP2)
-        child2 = child2 + list(restP1)
+        child1 = child1 + list(set(p2) - set(child1))
+        child2 = child2 + list(set(p1) - set(child2))
 
         return child1, child2
 
@@ -286,66 +286,150 @@ class EightQueensGA:
         if self.best_solution is not None:
             print("Solution found with score.", fitness(self.best_solution), self.best_fitness)
             print("AdhocDist: ", adhoc_distance(self.best_solution))
-            model_to_print = []
-            printI(self.best_solution)
-            model_to_print.append("""
-                var nodeDataArray = [
-                {"isGroup":true,"key":"orig","text":"Original","xy":"0 0","width":300},
-                {"key":"or1","group":"orig","text":"Rota 1", "isGroup":true},
-                {"key":"or2","group":"orig","text":"Rota 2", "isGroup":true},
-                {"isGroup":true,"key":"best","text":"Nueva","xy":"1500 0","width":300},
-                {"key":"br1","group":"best","text":"Rota 1", "isGroup":true},
-                {"key":"br2","group":"best","text":"Rota 2", "isGroup":true},
-            """)
             rota1, rota2 = devs[:half_point],devs[half_point:]
             nrota1, nrota2 = self.best_solution[:half_point],self.best_solution[half_point:]
-            nodeListToPrint = []
-            linkToPrint = []
 
-            for i, dev in enumerate(rota1):
-                is_last_month =""
-                if dev in LAST_MONTH_L:
-                    is_last_month = "*"
-                nodeListToPrint.append('{"key":"o'+dev+'","group":"or1","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
-                same_pos_r1 = i<len(nrota1) and dev == nrota1[i]
-                same_pos_r2 = i<len(nrota2) and dev == nrota2[i]
-                if not(same_pos_r1) and not(same_pos_r2):
-                   linkToPrint.append('{"from":"o'+dev+'","to":"b'+dev+'","category":"Mapping"}')
-
-            for i, dev in enumerate(rota2):
-                is_last_month =""
-                if dev in LAST_MONTH_L:
-                    is_last_month = "*"
-                nodeListToPrint.append('{"key":"o'+dev+'","group":"or2","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
-                same_pos_r1 = i<len(nrota1) and dev == nrota1[i]
-                same_pos_r2 = i<len(nrota2) and dev == nrota2[i]
-                if not(same_pos_r1) and not(same_pos_r2):
-                   linkToPrint.append('{"from":"o'+dev+'","to":"b'+dev+'","category":"Mapping"}')
-
-            for i, dev in enumerate(nrota1):
-                is_last_month =""
-                if dev in LAST_MONTH_L:
-                    is_last_month = "*"
-                nodeListToPrint.append('{"key":"b'+dev+'","group":"br1","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
-
-            for i, dev in enumerate(nrota2):
-                is_last_month =""
-                if dev in LAST_MONTH_L:
-                    is_last_month = "*"
-                nodeListToPrint.append('{"key":"b'+dev+'","group":"br2","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
-                
-            model_to_print.append(",\n".join(nodeListToPrint))
-            model_to_print.append('];\nvar linkDataArray = [')
-                        
-            model_to_print.append(",\n".join(linkToPrint))
-
-            model_to_print.append("]")
-            replace_content("treeMapper_template.html","\n".join(model_to_print))
-
-
-            write_solution_to_file(rota1, rota2, nrota1, nrota2, people_dict)
+            write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict)
         else:
             print("No solution found.")
+
+def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
+    from openpyxl import Workbook
+    from openpyxl.styles import PatternFill, Font, Alignment
+    from openpyxl.utils import get_column_letter
+    
+    # Create a new workbook
+    workbook = Workbook()
+    sheet = workbook.active
+    
+    sheet['A1'] = "New rotation"    
+
+    sheet['A2'] = "Original:"
+    sheet.merge_cells('A2:D2')
+
+    sheet["F2"] = "New:"
+    sheet.merge_cells('F2:I2')
+
+    sheet['A3'], sheet['C3'], sheet['F3'], sheet['H3'] = "Rota1", "Rota2", "Rota1", "Rota2"
+    sheet.merge_cells('A3:B3')
+    sheet.merge_cells('C3:D3')
+    sheet.merge_cells('F3:G3')
+    sheet.merge_cells('H3:I3')
+
+    for i in ["A","C", "F", "H"]:
+        sheet[i+"4"] = "Name"
+    for i in ["B","D", "G", "I"]:
+        sheet[i+"4"] = "Leader"
+
+    sheet["E4"] = "Is Adjacent?"
+    sheet["J4"] = "Is Adjacent?"
+
+    for cell in ["A1","A2", "F2","A3", "C3", "F3","H3","A4","C4", "F4", "H4", "B4","D4", "G4", "I4", "E4", "J4"]:
+        sheet[cell].alignment = Alignment(horizontal='center')
+        sheet[cell].font = Font(bold=True)
+
+    offset = 5
+
+    for i in range(max(len(rota1), len(rota2))):
+        pos = i + offset
+        odevr1, odevr2, ndevr1, ndevr2 = rota1[(i % len(rota1))], rota2[(i % len(rota2))], nrota1[(i % len(nrota1))], nrota2[(i % len(nrota2))]
+
+        sheet["A"+str(pos)] = people_dict[odevr1]["name"]
+        if people_dict[odevr1]["has_experience"] == "FALSE":
+            sheet["A"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+        if is_in_last_month(odevr1):
+            sheet["A"+str(pos)].font = Font(italic=True)
+
+        
+        sheet["B"+str(pos)] = people_dict[odevr1]["leader"]
+
+        sheet["C"+str(pos)] = people_dict[odevr2]["name"]
+        if people_dict[odevr2]["has_experience"] == "FALSE":
+            sheet["C"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+        if is_in_last_month(odevr2):
+            sheet["C"+str(pos)].font = Font(italic=True)
+
+        sheet["D"+str(pos)] = people_dict[odevr2]["leader"]
+        
+        sheet["E"+str(pos)] = "=OR(D{pos}=D{npos},D{pos}=B{npos},B{pos}=B{npos},B{pos}=D{npos})".format(pos=pos,npos=(pos+1))
+
+        ### New:
+        sheet["F"+str(pos)] = people_dict[ndevr1]["name"]
+        if people_dict[ndevr1]["has_experience"] == "FALSE":
+            sheet["F"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+        if is_in_last_month(ndevr1):
+            sheet["F"+str(pos)].font = Font(italic=True)
+
+        sheet["G"+str(pos)] = people_dict[ndevr1]["leader"]
+    
+        sheet["H"+str(pos)] = people_dict[ndevr2]["name"]
+        if people_dict[ndevr2]["has_experience"] == "FALSE":
+            sheet["H"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+        if is_in_last_month(ndevr2):
+            sheet["H"+str(pos)].font = Font(italic=True)
+
+        sheet["I"+str(pos)] = people_dict[ndevr2]["leader"]
+
+        sheet["J"+str(pos)]="=OR(I{pos}=I{npos},I{pos}=G{npos},G{pos}=G{npos},G{pos}=I{npos})".format(pos=pos,npos=(pos+1))
+    
+    workbook.save("report.xlsx")
+    print("Excel file created successfully.")
+
+def write_solution_to_html(rota1, rota2, nrota1, nrota2, people_dict):
+    model_to_print = []
+    printI(self.best_solution)
+    model_to_print.append("""
+        var nodeDataArray = [
+        {"isGroup":true,"key":"orig","text":"Original","xy":"0 0","width":300},
+        {"key":"or1","group":"orig","text":"Rota 1", "isGroup":true},
+        {"key":"or2","group":"orig","text":"Rota 2", "isGroup":true},
+        {"isGroup":true,"key":"best","text":"Nueva","xy":"1500 0","width":300},
+        {"key":"br1","group":"best","text":"Rota 1", "isGroup":true},
+        {"key":"br2","group":"best","text":"Rota 2", "isGroup":true},
+    """)
+   
+    nodeListToPrint = []
+    linkToPrint = []
+
+    for i, dev in enumerate(rota1):
+        is_last_month =""
+        if dev in LAST_MONTH_L:
+            is_last_month = "*"
+        nodeListToPrint.append('{"key":"o'+dev+'","group":"or1","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
+        same_pos_r1 = i<len(nrota1) and dev == nrota1[i]
+        same_pos_r2 = i<len(nrota2) and dev == nrota2[i]
+        if not(same_pos_r1) and not(same_pos_r2):
+            linkToPrint.append('{"from":"o'+dev+'","to":"b'+dev+'","category":"Mapping"}')
+
+    for i, dev in enumerate(rota2):
+        is_last_month =""
+        if dev in LAST_MONTH_L:
+            is_last_month = "*"
+        nodeListToPrint.append('{"key":"o'+dev+'","group":"or2","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
+        same_pos_r1 = i<len(nrota1) and dev == nrota1[i]
+        same_pos_r2 = i<len(nrota2) and dev == nrota2[i]
+        if not(same_pos_r1) and not(same_pos_r2):
+            linkToPrint.append('{"from":"o'+dev+'","to":"b'+dev+'","category":"Mapping"}')
+
+    for i, dev in enumerate(nrota1):
+        is_last_month =""
+        if dev in LAST_MONTH_L:
+            is_last_month = "*"
+        nodeListToPrint.append('{"key":"b'+dev+'","group":"br1","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
+
+    for i, dev in enumerate(nrota2):
+        is_last_month =""
+        if dev in LAST_MONTH_L:
+            is_last_month = "*"
+        nodeListToPrint.append('{"key":"b'+dev+'","group":"br2","text":"['+str(i)+'] '+dev[-1]+people_dict[dev]["name"]+' ('+people_dict[dev]['leader']+is_last_month+')"}')
+        
+    model_to_print.append(",\n".join(nodeListToPrint))
+    model_to_print.append('];\nvar linkDataArray = [')
+                
+    model_to_print.append(",\n".join(linkToPrint))
+
+    model_to_print.append("]")
+    replace_content("treeMapper_template.html","\n".join(model_to_print))    
 
 def write_solution_to_file(rota1, rota2, nrota1, nrota2, people_dict):
     reportList = []
