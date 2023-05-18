@@ -129,9 +129,9 @@ def fitness(individual, is_original=False):
     
     weights = {
         "same_boss": 0.5,
-        "adjacent_boss": 0.5,
+        "adjacent_boss": .8,
         "is_recent": 1,
-        "distance" : 0.5
+        "distance" : 0.2
     }
 
     for k, v in fitness_contribution.items():
@@ -143,6 +143,8 @@ def fitness(individual, is_original=False):
 
 def is_in_last_month(dev):
     return dev in LAST_MONTH_L
+   
+    
 
 class EightQueensGA:
     def __init__(self):
@@ -272,9 +274,7 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
     sheet["E4"] = "Is Adjacent?"
     sheet["J4"] = "Is Adjacent?"
 
-    for cell in ["A1","A2", "F2","A3", "C3", "F3","H3","A4","C4", "F4", "H4", "B4","D4", "G4", "I4", "E4", "J4"]:
-        sheet[cell].alignment = Alignment(horizontal='center')
-        sheet[cell].font = Font(bold=True)
+    titles=  ["A1","A2", "F2","A3", "C3", "F3","H3","A4","C4", "F4", "H4", "B4","D4", "G4", "I4", "E4", "J4"]       
 
     offset = 5
 
@@ -285,8 +285,9 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
         sheet["A"+str(pos)] = people_dict[odevr1]["name"]
         if people_dict[odevr1]["has_experience"] == "FALSE":
             sheet["A"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
-        if is_in_last_month(odevr1):
-            sheet["A"+str(pos)].font = Font(italic=True)
+        elif is_in_last_month(odevr1):
+            print("is last month:", odevr1)
+            sheet["A"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
         
         sheet["B"+str(pos)] = people_dict[odevr1]["leader"]
@@ -294,8 +295,9 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
         sheet["C"+str(pos)] = people_dict[odevr2]["name"]
         if people_dict[odevr2]["has_experience"] == "FALSE":
             sheet["C"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
-        if is_in_last_month(odevr2):
-            sheet["C"+str(pos)].font = Font(italic=True)
+        elif is_in_last_month(odevr2):
+            print("is last month:", odevr2)
+            sheet["C"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
         sheet["D"+str(pos)] = people_dict[odevr2]["leader"]
         
@@ -305,20 +307,48 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
         sheet["F"+str(pos)] = people_dict[ndevr1]["name"]
         if people_dict[ndevr1]["has_experience"] == "FALSE":
             sheet["F"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
-        if is_in_last_month(ndevr1):
-            sheet["F"+str(pos)].font = Font(italic=True)
+        elif is_in_last_month(ndevr1):
+            print("is last month:", ndevr1)
+            sheet["F"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
         sheet["G"+str(pos)] = people_dict[ndevr1]["leader"]
     
         sheet["H"+str(pos)] = people_dict[ndevr2]["name"]
         if people_dict[ndevr2]["has_experience"] == "FALSE":
             sheet["H"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
-        if is_in_last_month(ndevr2):
-            sheet["H"+str(pos)].font = Font(italic=True)
+        elif is_in_last_month(ndevr2):
+            print("is last month:", ndevr2)
+            sheet["H"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
         sheet["I"+str(pos)] = people_dict[ndevr2]["leader"]
 
         sheet["J"+str(pos)]="=OR(I{pos}=I{npos},I{pos}=G{npos},G{pos}=G{npos},G{pos}=I{npos})".format(pos=pos,npos=(pos+1))
+    
+    offset += max(len(rota1), len(rota2) )+ 2
+    sheet["A"+str(offset)] = "Code list"
+    titles.append("A"+str(offset))
+    offset +=1    
+
+    for index, key in enumerate(people_dict):  
+        pos = index + offset
+        sheet["A"+str(pos)] = key
+        sheet["B"+str(pos)] = people_dict[key]['name']
+        sheet["C"+str(pos)] = people_dict[key]['leader']
+    
+    offset += len(people_dict) + 2
+
+    sheet["A"+str(offset)] = "Last month"
+    titles.append("A"+str(offset))
+    offset +=1
+    for index, key in enumerate(LAST_MONTH_L):
+        pos = index + offset
+        sheet["A"+str(pos)] = key
+        sheet["B"+str(pos)] = people_dict[key]['name']
+
+    
+    for cell in titles:
+        sheet[cell].alignment = Alignment(horizontal='center')
+        sheet[cell].font = Font(bold=True)
     
     workbook.save("report.xlsx")
     print("Excel file created successfully.")
@@ -447,17 +477,23 @@ if __name__ == '__main__':
         people_list = list(reader)
 
     # Convert the list of people into a dictionary with codes as keys
+
+    # Load the CSV file into a list of dictionaries
+    with open("last_month.csv", "r") as file:
+        reader = csv.DictReader(file)
+        last_month = list(reader)
     
     devs = []
     dev_by_name = {}
     for i, person in enumerate(people_list):
         if not (leader_codes.get(person["leader"]) != None):
             leader_codes[person["leader"]] = chr(len(leader_codes) + 65)
+        has_experience = person["has_experience"] == "TRUE" or person["name"] in last_month
         code =  "{:02d}{}{}{}".format(
                 i,
                 leader_codes[person["leader"]],
                 str(i+1),
-                ("_" if person["has_experience"] == "TRUE" else "x")
+                ("_" if has_experience else "x")
         )
         people_dict[code] = person
         dev_by_name[person["name"]] = code
@@ -467,13 +503,7 @@ if __name__ == '__main__':
 
     original_devs_arrange = "-".join(devs)
     half_point = int(len(devs)/2)
-
    
-    # Load the CSV file into a list of dictionaries
-    with open("last_month.csv", "r") as file:
-        reader = csv.DictReader(file)
-        last_month = list(reader)
-
     for lm in last_month:
         LAST_MONTH_L.append(dev_by_name[lm["name"]])
 
