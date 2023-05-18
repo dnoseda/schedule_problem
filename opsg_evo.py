@@ -3,7 +3,7 @@ import time
 import sys
 from multiprocessing import Pool
 import csv
-
+from jinja2 import Template
 
 start = time.time()
 
@@ -160,35 +160,39 @@ def fitness(individual, is_original=False):
     rota1, rota2 = individual[:half_point],individual[half_point:]
     for i in range(half_point):
 
-       
-
         # consider if it first time on schedule
         if is_new(rota1[i]) and is_new(rota2[i]):
+            #print("NW")
             return 0.0000001
 
         # same dev
-        if rota1[i] == rota2[i]: 
+        if rota1[i] == rota2[i]:
+            print("SD")
             return 0.0000001
 
         # same boss
         if get_boss(rota1[i]) == get_boss(rota2[i]): 
+            #print("SB")
             conflicts = conflicts + 1000
         
         # adjacent boss
         if is_adjacent(rota1, rota2, i):
+            #print("ADJ")
             conflicts = conflicts + 1000        
          
         # discard solutions where first devs are from the last month
-        if i < len(LAST_MONTH_L):
-            if (rota1[i] in LAST_MONTH_L) or (rota2[i] in LAST_MONTH_L):
+        if i < (len(LAST_MONTH_L)/2):
+            if is_in_last_month(rota1[i]) or is_in_last_month(rota2[i]):
+                #print("LM")
                 conflicts = conflicts + 100000
     
 
     conflicts = conflicts + adhoc_distance(individual)
 
-    return 1 / (conflicts + 1)
+    return (1 / (conflicts + 1) * 10000000)
 
-
+def is_in_last_month(dev):
+    return dev in LAST_MONTH_L
 
 class EightQueensGA:
     def __init__(self):
@@ -210,54 +214,17 @@ class EightQueensGA:
         parent2 = random.choices(self.population, weights=self.fitness_scores)[0]
         return parent1, parent2
 
-    def crossover(self, parent1, parent2):
-        child1 = [None] * len(parent1)
-        child2 = [None] * len(parent2)
-        i = random.randint(0, len(parent1) - 1)
+    def crossover(self, p1, p2):
+        i = random.randint(0, len(p1) - 1)        
+        
+        child1 = p1[:i]
+        child2 = p2[:i]
+        
+        restP2 = set(p2) - set(child1)
+        restP1 = set(p1) - set(child2)
 
-        # Copy first i elements from parent1 into child1 and from parent2 into child2
-        for j in range(i):
-            child1[j] = parent1[j]
-            child2[j] = parent2[j]
-
-        # Add remaining unique elements from parent2 into child1 and from parent1 into child2
-        for element in parent2:
-            if element not in child1:
-                for j in range(i, len(child1)):
-                    if child1[j] is None:
-                        child1[j] = element
-                        break
-            if element not in child2:
-                for j in range(i, len(child2)):
-                    if child2[j] is None:
-                        child2[j] = element
-                        break
-
-        for element in parent1:
-            if element not in child2:
-                for j in range(i, len(child2)):
-                    if child2[j] is None:
-                        child2[j] = element
-                        break
-            if element not in child1:
-                for j in range(i, len(child1)):
-                    if child1[j] is None:
-                        child1[j] = element
-                        break
-
-        # Remove duplicate elements from child1
-        for j in range(i, len(child1)):
-            while child1[j] in child1[:j] + child1[j+1:]:
-                duplicate_index = child1.index(child1[j], j+1)
-                available_elements = set(parent1 + parent2) - set(child1)
-                child1[duplicate_index] = random.choice(list(available_elements))
-
-        # Remove duplicate elements from child2
-        for j in range(i, len(child2)):
-            while child2[j] in child2[:j] + child2[j+1:]:
-                duplicate_index = child2.index(child2[j], j+1)
-                available_elements = set(parent1 + parent2) - set(child2)
-                child2[duplicate_index] = random.choice(list(available_elements))
+        child1 = child1 + list(restP2)
+        child2 = child2 + list(restP1)
 
         return child1, child2
 
@@ -274,18 +241,13 @@ class EightQueensGA:
             with Pool() as pool:
                 self.fitness_scores = pool.map(fitness, self.population)
 
-            if 1 in self.fitness_scores:
-                self.best_solution = self.population[self.fitness_scores.index(1)]
-                break
+            sorted_devs = [x for _, x in sorted(zip(self.fitness_scores, self.population))]
 
-            #self.csv_writer.writerow(self.fitness_scores)
-
-            fitness_scores_copy = self.fitness_scores.copy()
-            fitness_scores_copy.sort(reverse=True)
-            best_fit_for_now = fitness_scores_copy[0]            
-
+            
+            best_for_now = sorted_devs[-1]
+            best_fit_for_now = fitness(best_for_now)
+            
             if self.best_solution is None or self.best_fitness < best_fit_for_now:
-                best_for_now = self.population[self.fitness_scores.index(best_fit_for_now)]
                 self.best_solution = best_for_now
                 self.best_fitness = best_fit_for_now
                 self.first_best = i
@@ -293,7 +255,7 @@ class EightQueensGA:
                 print("*")
                 
 
-            printT("start gen {} -> {} found on {} dist {}".format(
+            printT("start gen {} -> {} found on pop {} distance {}".format(
                 i,
                 self.best_fitness,
                 self.first_best,
@@ -322,7 +284,7 @@ class EightQueensGA:
         print("Original:", fitness(devs, is_original=True))
         printI(devs)
         if self.best_solution is not None:
-            print("Solution found with score.", fitness(self.best_solution))
+            print("Solution found with score.", fitness(self.best_solution), self.best_fitness)
             print("AdhocDist: ", adhoc_distance(self.best_solution))
             model_to_print = []
             printI(self.best_solution)
@@ -379,8 +341,50 @@ class EightQueensGA:
 
             model_to_print.append("]")
             replace_content("treeMapper_template.html","\n".join(model_to_print))
+
+
+            write_solution_to_file(rota1, rota2, nrota1, nrota2, people_dict)
         else:
             print("No solution found.")
+
+def write_solution_to_file(rota1, rota2, nrota1, nrota2, people_dict):
+    reportList = []
+    reportList.append("New rotation")
+    reportList.append("Original:" + (5*"\t") + "New:")
+    reportList.append("Rota1\t\tRota2\t\t" + (1*"\t") + "Rota1\t\tRota2")
+    reportList.append(("Name\tLeader\t"*2) + (1*"\t") + ("Name\tLeader\t"*2))
+    for i in range(max(len(rota1), len(rota2))):
+        
+        odevr1, odevr2, ndevr1, ndevr2 = rota1[(i % len(rota1))], rota2[(i % len(rota2))], nrota1[(i % len(nrota1))], nrota2[(i % len(nrota2))]
+        reportList.append("{}\t{}\t{}\t{}\t\t{}\t{}\t{}\t{}".format(
+          
+            ("* " if people_dict[odevr1]["has_experience"] == "FALSE" else "")+
+            ("_ " if is_in_last_month(odevr1) else "")+
+            people_dict[odevr1]["name"],
+            people_dict[odevr1]["leader"],
+          
+            ("* " if people_dict[odevr2]["has_experience"] == "FALSE" else "")+
+            ("_ " if is_in_last_month(odevr2) else "")+
+            people_dict[odevr2]["name"],
+            people_dict[odevr2]["leader"],
+            
+            ### New:
+            ("* " if people_dict[ndevr1]["has_experience"] == "FALSE" else "")+
+            ("_ " if is_in_last_month(ndevr1) else "")+
+            people_dict[ndevr1]["name"],
+            people_dict[ndevr1]["leader"],
+       
+            ("* " if people_dict[ndevr2]["has_experience"] == "FALSE" else "")+
+            ("_ " if is_in_last_month(ndevr2) else "")+
+            people_dict[ndevr2]["name"],
+            people_dict[ndevr2]["leader"]
+        ))
+
+    report = "\n".join(reportList)
+
+    with open("report.csv", "w") as file:
+        file.write(report)
+        
 
 def replace_content(html_file, custom_text):
     """
