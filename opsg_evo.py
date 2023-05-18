@@ -9,18 +9,6 @@ import csv
 
 start = time.time()
 
-class bcolors:
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-
 def printT(msg):
     print((time.time()-start), "-->",msg)
 
@@ -41,38 +29,12 @@ half_point = int(len(devs)/2)
 people_dict = {}
 
 
-def printL(l):
-    """
-    for i in l:
-        if i[0] == 'A':
-            print(bcolors.OKBLUE+"_"+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'B':
-            print(bcolors.OKGREEN+"_"+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'C':
-            print(bcolors.WARNING+"_"+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'D':
-            print(bcolors.FAIL+"_"+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'E':
-            print(bcolors.BOLD+"_"+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'F':
-            print(bcolors.UNDERLINE+"_"+i+bcolors.ENDC+", ", end="")
-        elif i[0] == 'G':
-            print("+"+i+", ", end="")
-        elif i[0] == 'H':
-            print("$"+i+", ", end="")
-        else:
-            print(i+", ", end="")
-    
-    print("")
-    """
-    print(l)
-
 def printI(individual):
     print("Rota 1 -> ",end="")
-    printL(individual[:half_point])
+    print(individual[:half_point])
 
     print("Rota 2 -> ",end="")
-    printL(individual[half_point:])
+    print(individual[half_point:])
 
     print("CSV:")
     print("\t".join(individual[:half_point]))
@@ -92,34 +54,6 @@ def save_solution(i, best_solution):
     
     writer.writerow(row)   
     csv_file.close()
-
-
-def levenshtein_distance(s, t):
-    """
-    Calculate the Levenshtein distance between two strings s and t using dynamic programming.
-    """
-    # Initialize a matrix of zeros with dimensions (len(s) + 1) x (len(t) + 1)
-    dist = [[0 for j in range(len(t) + 1)] for i in range(len(s) + 1)]
-
-    # Fill in the first row and column of the matrix
-    for i in range(1, len(s) + 1):
-        dist[i][0] = i
-    for j in range(1, len(t) + 1):
-        dist[0][j] = j
-
-    # Fill in the rest of the matrix
-    for j in range(1, len(t) + 1):
-        for i in range(1, len(s) + 1):
-            if s[i-1] == t[j-1]:
-                cost = 0
-            else:
-                cost = 1
-            dist[i][j] = min(dist[i-1][j] + 1,    # deletion
-                             dist[i][j-1] + 1,    # insertion
-                             dist[i-1][j-1] + cost) # substitution
-
-    # Return the final Levenshtein distance
-    return dist[-1][-1]
 
 def get_boss(cel):
     return cel[2]
@@ -160,6 +94,11 @@ def fitness(individual, is_original=False):
     
     conflicts = 0
     rota1, rota2 = individual[:half_point],individual[half_point:]
+    fitness_contribution ={
+        "same_boss": 0,
+        "adjacent_boss": 0,
+        "is_recent": 0
+    }
     for i in range(half_point):
 
         # consider if it first time on schedule
@@ -174,24 +113,33 @@ def fitness(individual, is_original=False):
 
         # same boss
         if get_boss(rota1[i]) == get_boss(rota2[i]): 
-            #print("SB")
-            conflicts = conflicts + 1000
+            fitness_contribution["same_boss"] += 1
         
         # adjacent boss
         if is_adjacent(rota1, rota2, i):
-            #print("ADJ")
-            conflicts = conflicts + 1000        
+            fitness_contribution["adjacent_boss"] += 1        
          
         # discard solutions where first devs are from the last month
         if i < (len(LAST_MONTH_L)/2):
             if is_in_last_month(rota1[i]) or is_in_last_month(rota2[i]):
                 #print("LM")
-                conflicts = conflicts + 100000
+                fitness_contribution["is_recent"] += 1
     
+    fitness_contribution["distance"] =adhoc_distance(individual)
+    
+    weights = {
+        "same_boss": 0.5,
+        "adjacent_boss": 0.5,
+        "is_recent": 1,
+        "distance" : 0.5
+    }
 
-    conflicts = conflicts + adhoc_distance(individual)
+    for k, v in fitness_contribution.items():
+        conflicts += weights[k] * ((v/500) if k == "distance" else v)
+    
+    #print("---->",fitness_contribution, " = ", conflicts)
 
-    return (1 / (conflicts + 1) * 10000000)
+    return (1 / (conflicts + 1))
 
 def is_in_last_month(dev):
     return dev in LAST_MONTH_L
