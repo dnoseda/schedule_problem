@@ -8,7 +8,7 @@ import csv
 #from openpyxl.formula import Formula
 
 start = time.time()
-
+    
 def printT(msg):
     print((time.time()-start), "-->",msg)
 
@@ -132,8 +132,8 @@ def fitness(individual, is_original=False):
     """
     
     weights = {
-        "same_boss": 10000,
-        "adjacent_boss": 10000,
+        "same_boss": 100,
+        "adjacent_boss": 1000,
         "is_recent": 1,
         "distance" : 1
     }
