@@ -1,5 +1,7 @@
 import random
 
+LAST_MONTH_L=[]
+
 class Color:
     # Define color codes
     RED = '\033[91m'
@@ -11,6 +13,113 @@ class Color:
 def colorize_string(text, color):
     # Colorize the given string with the specified color
     return color + text + Color.RESET
+
+def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
+    from openpyxl import Workbook
+    from openpyxl.styles import PatternFill, Font, Alignment
+    from openpyxl.utils import get_column_letter
+    
+    # Create a new workbook
+    workbook = Workbook()
+    sheet = workbook.active
+    
+    sheet['A1'] = "New rotation"    
+
+    sheet['A2'] = "Original:"
+    sheet.merge_cells('A2:D2')
+
+    sheet["F2"] = "New:"
+    sheet.merge_cells('F2:I2')
+
+    sheet['A3'], sheet['C3'], sheet['F3'], sheet['H3'] = "Rota1", "Rota2", "Rota1", "Rota2"
+    sheet.merge_cells('A3:B3')
+    sheet.merge_cells('C3:D3')
+    sheet.merge_cells('F3:G3')
+    sheet.merge_cells('H3:I3')
+
+    for i in ["A","C", "F", "H"]:
+        sheet[i+"4"] = "Name"
+    for i in ["B","D", "G", "I"]:
+        sheet[i+"4"] = "Leader"
+
+    sheet["E4"] = "Is Adjacent?"
+    sheet["J4"] = "Is Adjacent?"
+
+    titles=  ["A1","A2", "F2","A3", "C3", "F3","H3","A4","C4", "F4", "H4", "B4","D4", "G4", "I4", "E4", "J4"]       
+
+    offset = 5
+
+    for i in range(max(len(rota1), len(rota2))):
+        pos = i + offset
+        odevr1, odevr2, ndevr1, ndevr2 = rota1[(i % len(rota1))], rota2[(i % len(rota2))], nrota1[(i % len(nrota1))], nrota2[(i % len(nrota2))]
+
+        sheet["A"+str(pos)] = people_dict[odevr1]["name"]
+        if people_dict[odevr1]["has_experience"] == "FALSE":
+            sheet["A"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+        elif is_in_last_month(odevr1):
+            sheet["A"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
+
+        
+        sheet["B"+str(pos)] = people_dict[odevr1]["leader"]
+
+        sheet["C"+str(pos)] = people_dict[odevr2]["name"]
+        if people_dict[odevr2]["has_experience"] == "FALSE":
+            sheet["C"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+        elif is_in_last_month(odevr2):
+            sheet["C"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
+
+        sheet["D"+str(pos)] = people_dict[odevr2]["leader"]
+        
+        sheet["E"+str(pos)] = "=OR(D{pos}=D{npos},D{pos}=B{npos},B{pos}=B{npos},B{pos}=D{npos})".format(pos=pos,npos=(pos+1))
+
+        ### New:
+        sheet["F"+str(pos)] = people_dict[ndevr1]["name"]
+        if people_dict[ndevr1]["has_experience"] == "FALSE":
+            sheet["F"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+        elif is_in_last_month(ndevr1):
+            sheet["F"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
+
+        sheet["G"+str(pos)] = people_dict[ndevr1]["leader"]
+    
+        sheet["H"+str(pos)] = people_dict[ndevr2]["name"]
+        if people_dict[ndevr2]["has_experience"] == "FALSE":
+            sheet["H"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+        elif is_in_last_month(ndevr2):
+            sheet["H"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
+
+        sheet["I"+str(pos)] = people_dict[ndevr2]["leader"]
+
+        sheet["J"+str(pos)]="=OR(I{pos}=I{npos},I{pos}=G{npos},G{pos}=G{npos},G{pos}=I{npos})".format(pos=pos,npos=(pos+1))
+    
+    offset += max(len(rota1), len(rota2) )+ 2
+    sheet["A"+str(offset)] = "Code list"
+    titles.append("A"+str(offset))
+    offset +=1    
+
+    for index, key in enumerate(people_dict):  
+        pos = index + offset
+        sheet["A"+str(pos)] = key
+        sheet["B"+str(pos)] = people_dict[key]['name']
+        sheet["C"+str(pos)] = people_dict[key]['leader']
+    
+    offset += len(people_dict) + 2
+
+    sheet["A"+str(offset)] = "Last month"
+    titles.append("A"+str(offset))
+    offset +=1
+    for index, key in enumerate(LAST_MONTH_L):
+        pos = index + offset
+        sheet["A"+str(pos)] = key
+        sheet["B"+str(pos)] = people_dict[key]['name']
+
+    
+    for cell in titles:
+        sheet[cell].alignment = Alignment(horizontal='center')
+        sheet[cell].font = Font(bold=True)
+    
+    workbook.save("report.xlsx")
+    print("Excel file created successfully.")
+        
 
 
 rota1= ["00A1_","01B2_","02B3_","03A4_","04C5_","05C6_","06C7_","07D8_","08D9_","09D10_","10A11_","11A12_","12A13_","13E14_","14B15_","15F16_","16G17_","17G18_","18G19_","19H20_","20H21_","21G22_","22H23_","23H24_","24E25_","49I50x"]
@@ -42,6 +151,10 @@ def its_all_ok():
             r +=1
         if are_both_new(rota1[r1pos], rota2[r2pos]):
             r +=1
+
+        if i <= max_len/2 and (rota1[r1pos] in LAST_MONTH_L or rota2[r2pos] in LAST_MONTH_L):
+            r +=1
+
     
     return r
 
@@ -68,6 +181,8 @@ def is_same_boss(dev1, dev2):
     return get_boss(dev1) == get_boss(dev2)
 def are_both_new(dev1,dev2):
     return is_new(dev1) and is_new(dev2)
+def is_in_last_month(dev):
+    return dev in LAST_MONTH_L
 
 def replace_better_pos(rota1, rota2, i):
     offset = random.randint(0, max_len) 
@@ -102,7 +217,7 @@ def replace_better_pos(rota1, rota2, i):
 import csv
 
 people_dict ={}
-LAST_MONTH_L=[]
+
 
 filename_input = "people.csv"  # Replace with the name of your CSV file
 leader_codes = {}  # Replace with the leader names and their codes
@@ -165,6 +280,7 @@ for j in range(max_repeat):
     if its_all_ok() == 0:
         break
 
+write_solution_to_excel(rota1, rota2,rota1, rota2, people_dict)
 
 for i in range(max_len):
     r2pos = i % len(rota2)    
