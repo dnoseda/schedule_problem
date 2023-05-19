@@ -74,32 +74,35 @@ def replace_better_pos(rota1, rota2, i):
     for j in range(max_len):
         r2pos = (j+i+offset) % len(rota2)
         r1pos = (j+i+offset) % len(rota1)
-        if not is_same_boss(rota1[i], rota2[r2pos]) and not is_adjacent(rota1,rota2,i,j) and not are_both_new(rota1[i], rota2[r2pos]):
+        if not is_same_boss(rota1[i%len(rota1)], rota2[r2pos]) and not is_adjacent(rota1,rota2,i,j) and not are_both_new(rota1[i%len(rota1)], rota2[r2pos]):
             #replace
             bf = its_all_ok()
             
-            rota1[i], rota2[r2pos] = rota2[r2pos], rota1[i]
+            rota1[i%len(rota1)], rota2[r2pos] = rota2[r2pos], rota1[i%len(rota1)]
             af = its_all_ok()
             if bf >= af:
-                #print("Switch : ",rota1[i], "->", rota2[r2pos], "from", i, "to", r2pos)
-                return rota1[i], rota2[r2pos]
+                #print("Switch : ",rota1[i%len(rota1)], "->", rota2[r2pos], "from", i, "to", r2pos)
+                return rota1[i%len(rota1)], rota2[r2pos]
             else: #rollback                
-                rota1[i], rota2[r2pos] = rota2[r2pos], rota1[i]
+                rota1[i%len(rota1)], rota2[r2pos] = rota2[r2pos], rota1[i%len(rota1)]
 
-        if not is_adjacent(rota1,rota2,i,j) and not are_both_new(rota1[i], rota2[r2pos]):
+        if not is_adjacent(rota1,rota2,i,j) and not are_both_new(rota1[i%len(rota1)], rota2[r2pos]):
             
             bf = its_all_ok()
-            rota1[r1pos], rota1[i] = rota1[i], rota1[r1pos]            
+            rota1[r1pos], rota1[i%len(rota1)] = rota1[i%len(rota1)], rota1[r1pos]            
             af = its_all_ok()
             if bf >= af:
                 #print("Switch : ",rota1[r1pos], "->", rota1[r1pos], "from", i, "to", r1pos)
-                return rota1[i], rota2[r2pos]
+                return rota1[i%len(rota1)], rota2[r2pos]
             else: #rollback                
-                rota1[r1pos], rota1[i] = rota1[i], rota1[r1pos]
+                rota1[r1pos], rota1[i%len(rota1)] = rota1[i%len(rota1)], rota1[r1pos]
     
     return "",""
 
 import csv
+
+people_dict ={}
+LAST_MONTH_L=[]
 
 filename_input = "people.csv"  # Replace with the name of your CSV file
 leader_codes = {}  # Replace with the leader names and their codes
