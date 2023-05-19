@@ -109,7 +109,7 @@ def fitness(individual, is_original=False):
         # same dev
         if rota1[i] == rota2[i]:
             print("SD")
-            return 0.0000001
+            return 0.0000001 #
 
         # same boss
         if get_boss(rota1[i]) == get_boss(rota2[i]): 
@@ -120,18 +120,22 @@ def fitness(individual, is_original=False):
             fitness_contribution["adjacent_boss"] += 1        
          
         # discard solutions where first devs are from the last month
+        """
         if i < (len(LAST_MONTH_L)/2):
             if is_in_last_month(rota1[i]) or is_in_last_month(rota2[i]):
                 #print("LM")
                 fitness_contribution["is_recent"] += 1
+                """
     
+    """
     fitness_contribution["distance"] =adhoc_distance(individual)
+    """
     
     weights = {
-        "same_boss": 0.5,
-        "adjacent_boss": .8,
+        "same_boss": 10000,
+        "adjacent_boss": 10000,
         "is_recent": 1,
-        "distance" : 0.2
+        "distance" : 1
     }
 
     for k, v in fitness_contribution.items():
@@ -167,8 +171,8 @@ class EightQueensGA:
         return parent1, parent2
 
     def crossover(self, p1, p2):
-        #i = random.randint(0, len(p1) - 1)        
-        i = half_point
+        i = random.randint(0, len(p1) - 1)        
+        #i = half_point
         
         child1 = p1[:i]
         child2 = p2[:i]        
