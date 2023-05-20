@@ -138,7 +138,7 @@ def printstage():
         print(s, ",", end="")
     print("")
 
-def its_all_ok():
+def get_success_fitness():
     r = 0
     for i in range(max_len):
         r2pos = i % len(rota2)    
@@ -191,10 +191,10 @@ def replace_better_pos(rota1, rota2, i):
         r1pos = (j+i+offset) % len(rota1)
         if not is_same_boss(rota1[i%len(rota1)], rota2[r2pos]) and not is_adjacent(rota1,rota2,i,j) and not are_both_new(rota1[i%len(rota1)], rota2[r2pos]):
             #replace
-            bf = its_all_ok()
+            bf = get_success_fitness()
             
             rota1[i%len(rota1)], rota2[r2pos] = rota2[r2pos], rota1[i%len(rota1)]
-            af = its_all_ok()
+            af = get_success_fitness()
             if bf >= af:
                 #print("Switch : ",rota1[i%len(rota1)], "->", rota2[r2pos], "from", i, "to", r2pos)
                 return rota1[i%len(rota1)], rota2[r2pos]
@@ -203,14 +203,16 @@ def replace_better_pos(rota1, rota2, i):
 
         if not is_adjacent(rota1,rota2,i,j) and not are_both_new(rota1[i%len(rota1)], rota2[r2pos]):
             
-            bf = its_all_ok()
+            bf = get_success_fitness()
             rota1[r1pos], rota1[i%len(rota1)] = rota1[i%len(rota1)], rota1[r1pos]            
-            af = its_all_ok()
+            af = get_success_fitness()
             if bf >= af:
                 #print("Switch : ",rota1[r1pos], "->", rota1[r1pos], "from", i, "to", r1pos)
                 return rota1[i%len(rota1)], rota2[r2pos]
             else: #rollback                
                 rota1[r1pos], rota1[i%len(rota1)] = rota1[i%len(rota1)], rota1[r1pos]
+        
+        
     
     return "",""
 
@@ -264,7 +266,7 @@ max_len = max(len(rota1), len(rota2))
 
 max_repeat = 10000
 for j in range(max_repeat):
-    print("iter",j, "rate", its_all_ok())
+    print("iter",j, "rate", get_success_fitness())
     for i in range(max_len):
         #printstage()
         r2pos = i % len(rota2)
@@ -277,7 +279,14 @@ for j in range(max_repeat):
             continue
         if are_both_new(rota1[r1pos], rota2[r2pos]):
             l1,l2= replace_better_pos(rota1, rota2, i)
-    if its_all_ok() == 0:
+            continue
+        if i <= max_len/2 and is_in_last_month(rota1[r1pos]):
+            l1,l2 = replace_better_pos(rota1, rota2, i)
+            continue
+        if i <= max_len/2 and is_in_last_month(rota2[r2pos]):
+            l1,l2 = replace_better_pos(rota1, rota2, i)
+            continue
+    if get_success_fitness() == 0:
         break
 
 write_solution_to_excel(rota1, rota2,rota1, rota2, people_dict)
@@ -287,7 +296,7 @@ for i in range(max_len):
     r1pos = i % len(rota1)
     dev1 = rota1[r1pos]
     dev2 = rota2[r2pos]
-    print("{} ({}) [{}]\t{} ({}) [{}]\t{}\t{}\t{}==\t{}\t\t{}\t{}\t{}\t{}".format(
+    print("{} ({}) [{}]\t{} ({}) [{}]\t{}\t{}\t{}==\t{}\t\t{}{}\t{}\t{}{}\t{}".format(
         dev1, get_boss(dev1), dev1[-1],
         dev2, get_boss(dev2), dev2[-1],
         is_adjacent(rota1,rota2,i,i),
@@ -298,11 +307,11 @@ for i in range(max_len):
             is_same_boss(rota1[r1pos], rota2[r2pos]) or
             are_both_new(rota1[r1pos], rota2[r2pos])
         ),
-        people_dict[dev1]["name"],people_dict[dev1]["leader"],
-        people_dict[dev2]["name"],people_dict[dev2]["leader"]
+        people_dict[dev1]["name"],"(.)" if is_in_last_month(dev1) else "",people_dict[dev1]["leader"],
+        people_dict[dev2]["name"],"(.)" if is_in_last_month(dev2) else "",people_dict[dev2]["leader"],
+        
         ))
 
 
-# TODO: falta levantar la info de un file
-# TODO: mandar a excel
-# TODO: considerar last_month
+
+
