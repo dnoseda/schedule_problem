@@ -124,6 +124,7 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
 
 rota1= ["00A1_","01B2_","02B3_","03A4_","04C5_","05C6_","06C7_","07D8_","08D9_","09D10_","10A11_","11A12_","12A13_","13E14_","14B15_","15F16_","16G17_","17G18_","18G19_","19H20_","20H21_","21G22_","22H23_","23H24_","24E25_","49I50x"]
 rota2= ["25G26_","26B27_","27I28_","28C29_","29B30x","30D31x","31A32x","32A33x","33H34x","34J35_","35J36_","36E37_","37H38x","38F39_","39G40_","40F41x","41G42_","42F43_","43F44_","44D45_","45D46_","46D47_","47A48x","48H49x","50I51x"]
+orota1, orota2 = [],[]
 max_len = max(len(rota1), len(rota2))
 l1,l2 = "", ""
 
@@ -262,6 +263,7 @@ for lm in last_month:
 
 print(LAST_MONTH_L)
 rota1, rota2 = devs[:half_point],devs[half_point:]
+orota1, orota2 = rota1+[], rota2+[]
 max_len = max(len(rota1), len(rota2))
 
 max_repeat = 10000
@@ -289,7 +291,7 @@ for j in range(max_repeat):
     if get_success_fitness() == 0:
         break
 
-write_solution_to_excel(rota1, rota2,rota1, rota2, people_dict)
+write_solution_to_excel(orota1, orota2,rota1, rota2, people_dict)
 
 for i in range(max_len):
     r2pos = i % len(rota2)    
