@@ -2,18 +2,6 @@ import random
 
 LAST_MONTH_L=[]
 
-class Color:
-    # Define color codes
-    RED = '\033[91m'
-    GREEN = '\033[92m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    RESET = '\033[0m'
-
-def colorize_string(text, color):
-    # Colorize the given string with the specified color
-    return color + text + Color.RESET
-
 def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
     from openpyxl import Workbook
     from openpyxl.styles import PatternFill, Font, Alignment
@@ -127,17 +115,18 @@ rota2= ["25G26_","26B27_","27I28_","28C29_","29B30x","30D31x","31A32x","32A33x",
 orota1, orota2 = [],[]
 max_len = max(len(rota1), len(rota2))
 l1,l2 = "", ""
+last_offset = 1
 
-def printstage():
-    print("*\nRota1:")
-    for dev in rota1:
-        s = colorize_string(dev, Color.GREEN) if l1 == dev else (colorize_string(dev, Color.BLUE) if l2 == dev else dev)
-        print(s, ",", end="")
-    print("\nRota2:")
-    for dev in rota2:
-        s = colorize_string(dev, Color.GREEN) if l1 == dev else (colorize_string(dev, Color.BLUE) if l2 == dev else dev)
-        print(s, ",", end="")
-    print("")
+def adhoc_distance(newlist):
+    """
+    check distance by sum of the differences with original pos in whatever rotation
+    """
+    distance = 0
+    for i, dev in enumerate(newlist):
+        original_pos = int(dev[0:2]) % half_point
+        new_pos = i % half_point
+        distance = distance + abs(original_pos - new_pos)
+    return distance
 
 def get_success_fitness():
     r = 0
@@ -157,7 +146,7 @@ def get_success_fitness():
             r +=1
 
     
-    return r
+    return r #+ adhoc_distance(rota1+rota2)
 
 def get_boss(cel):
     return cel[2]
@@ -185,8 +174,16 @@ def are_both_new(dev1,dev2):
 def is_in_last_month(dev):
     return dev in LAST_MONTH_L
 
+
+def get_offset():
+    #global last_offset
+    #last_offset = last_offset + 1
+    return random.randint(0, max_len) 
+    #return last_offset
+    
+
 def replace_better_pos(rota1, rota2, i):
-    offset = random.randint(0, max_len) 
+    offset = get_offset()
     for j in range(max_len):
         r2pos = (j+i+offset) % len(rota2)
         r1pos = (j+i+offset) % len(rota1)
@@ -268,9 +265,8 @@ max_len = max(len(rota1), len(rota2))
 
 max_repeat = 10000
 for j in range(max_repeat):
-    print("iter",j, "rate", get_success_fitness())
+    print("iter",j, "rate", get_success_fitness(),"adhoc_distance" ,adhoc_distance(rota1+rota2))    
     for i in range(max_len):
-        #printstage()
         r2pos = i % len(rota2)
         r1pos = i % len(rota1)
         if is_same_boss(rota1[r1pos], rota2[r2pos]):
