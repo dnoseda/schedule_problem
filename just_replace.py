@@ -238,7 +238,7 @@ devs = []
 dev_by_name = {}
 for i, person in enumerate(people_list):
     if not (leader_codes.get(person["leader"]) != None):
-        leader_codes[person["leader"]] = chr(len(leader_codes) + 65)
+        leader_codes[person["leader"]] = chr(len(leader_codes) + 65) # if it is  mlb the lead should be the same, another alternative is to do leader as a list of leaders
     has_experience = person["has_experience"] == "TRUE" or person["name"] in last_month
     code =  "{:02d}{}{}{}".format(
             i,
@@ -248,6 +248,13 @@ for i, person in enumerate(people_list):
     )
     people_dict[code] = person
     dev_by_name[person["name"]] = code
+    """
+        if it is from mlb:
+            add once as a single block
+            set leader as all leaders from mlb, this should be setted aside
+        else should keep the same logic
+        
+    """
     devs.append(code)
 
 print(people_dict)
@@ -269,6 +276,12 @@ for j in range(max_repeat):
     for i in range(max_len):
         r2pos = i % len(rota2)
         r1pos = i % len(rota1)
+
+        """
+            Check if it is mlb dev,
+            for mlb dev, the same_boss has to check with 2 sets of leaders
+            for mlb dev, it's treated as a single block that can be adjacent to other mlb dev. Consider this in same_boss
+        """
         if is_same_boss(rota1[r1pos], rota2[r2pos]):
             l1,l2= replace_better_pos(rota1, rota2, i)
             continue
