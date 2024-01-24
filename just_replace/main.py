@@ -124,9 +124,60 @@ print(devs)
 
 
 
-original_devs_arrange = "-".join(devs)
-half_point = int(len(devs)/2)
+def is_adjacent(rota1, rota2, i, j):
+    """
+    i = current position
+    j = future position
+    """
+    devR2 = rota2[i % len(rota2)]
 
+    if is_MLB_group(devR2):
+        ret= check_mlb_adjacent(rota1, rota2, i,j)
+        # print all incomming parameters
+        print("MLB Is adjacent {}, rota1 dev [{}]: {} rota2 dev[{}] {}, next {} rota1 {}, next {} rota2 {}".format(
+                ret,
+                i,rota1[i%len(rota1)],
+                i,rota2[i%len(rota2)],
+                j,rota1[j%len(rota1)],
+                j,rota2[j%len(rota2)]
+            ))
+        return ret
+
+
+
+
+    a1, a2 = get_boss(rota1[i % len(rota1)]), get_boss(rota1[(j+1)%len(rota1)])
+    b1, b2 = get_boss(rota2[i % len(rota2)]), get_boss(rota2[(j+1)%len(rota2)])
+
+     
+
+    if a1 in [a2, b2]:
+        return True            
+    
+    if b1 in [b2, a2]:
+        return True
+
+    return False
+def get_success_fitness():
+    r = 0
+    for i in range(max_len):
+        r2pos = i % len(rota2)    
+        r1pos = i % len(rota1)
+        dev1 = rota1[r1pos]
+        dev2 = rota2[r2pos]
+        if is_adjacent(rota1,rota2,i,i):
+            print("<<<< add 70 is adjacent {} {}".format(dev1, dev2))
+            r +=70
+            print("><<<< r: ",r)
+        if is_same_boss(rota1[r1pos], rota2[r2pos]):
+            r +=1
+        if are_both_new(rota1[r1pos], rota2[r2pos]):
+            r +=1
+
+        if i <= max_len/2 and (dev1 in LAST_MONTH_L or dev2 in LAST_MONTH_L):
+            r +=1
+    print(">>> R",r)
+    return r #+ adhoc_distance(rota1+rota2)
 
 def adhoc_distance(newlist):
     """
@@ -142,6 +193,13 @@ def adhoc_distance(newlist):
         distance = distance + abs(original_pos - new_pos)
     return distance
 
+
+
+original_devs_arrange = "-".join(devs)
+half_point = int(len(devs)/2)
+
+
+
 for lm in last_month:
     LAST_MONTH_L.append(dev_by_name[lm["name"]])
 
@@ -151,6 +209,8 @@ orota1, orota2 = rota1+[], rota2+[]
 max_len = max(len(rota1), len(rota2))
 
 # rota2 is the only one that can have mlb devs
+
+
 
 max_repeat = 100000
 for j in range(max_repeat):
@@ -204,8 +264,8 @@ def get_lead(dev):
     return people_dict[dev]["leader"]
 
 
-print(">>> Leader codes")
-print(leader_codes)
+
+
 
 for i in range(max_len):
     r2pos = i % len(rota2)    

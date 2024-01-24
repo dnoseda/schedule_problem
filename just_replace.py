@@ -149,9 +149,7 @@ def get_success_fitness():
         dev1 = rota1[r1pos]
         dev2 = rota2[r2pos]
         if is_adjacent(rota1,rota2,i,i):
-            print("<<<< add 70 is adjacent {} {}".format(dev1, dev2))
-            r +=70
-            print("><<<< r: ",r)
+            r +=70            
         if is_same_boss(rota1[r1pos], rota2[r2pos]):
             r +=1
         if are_both_new(rota1[r1pos], rota2[r2pos]):
@@ -159,7 +157,7 @@ def get_success_fitness():
 
         if i <= max_len/2 and (dev1 in LAST_MONTH_L or dev2 in LAST_MONTH_L):
             r +=1
-    print(">>> R",r)
+    
     return r #+ adhoc_distance(rota1+rota2)
 
 def get_boss(cel):
@@ -373,7 +371,8 @@ for i, person in enumerate(people_list):
     """
     if person["mlb"] == "TRUE":
         mlb_devs.append(code)
-    devs.append(code)
+    else:
+        devs.append(code)
 
 print(">>> Before turning mlb_devs into single blocks")
 print(people_dict)
@@ -418,9 +417,7 @@ print(mlb_devs_groups)
 print(">>> MLB Group Leaders")
 print(mlb_group_lead )
 
-# delete all mlb devs from devs
-for mlb_dev in mlb_devs:
-    devs.remove(mlb_dev)
+
 
 # add all keys from mlb_group_lead to devs at the end
 devs.extend(list(mlb_group_lead.keys()))
@@ -499,8 +496,23 @@ def get_lead(dev):
     return people_dict[dev]["leader"]
 
 
-print(">>> Leader codes")
-print(leader_codes)
+print(">>> Leader codes\nName\tCode")
+for k,v in leader_codes.items():
+    print("{}\t{}".format(k,v))
+
+print(">>> MLB Leaders group codes\nGroup\tLeaders")
+for k,v in mlb_group_lead.items():    
+    lead_group = ""
+    
+    for l in v:
+        lead_group += ", ".join(map(get_leader_by_code, v))
+    print("{}\t{}".format(k, lead_group))    
+
+
+print(">>> Devs in mlb groups\nDev\tGroup")
+for k,v in mlb_devs_groups.items():
+    print("{}\t{}".format(people_dict[k]['name'],v))
+
 
 for i in range(max_len):
     r2pos = i % len(rota2)    
