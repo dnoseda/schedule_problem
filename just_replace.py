@@ -37,6 +37,16 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
 
     offset = 5
 
+
+    """
+    no cambiar cada 8 guardias
+    2 grupos de mlb con solo 2 personas
+    Habría GA1 y GA2
+    Siempre consecutivos
+    los grupos de MLB se agregan al final de la lista
+    los devs de esos grupos se eliminan de la lista, no hay replace
+    """
+
     for i in range(max(len(rota1), len(rota2))):
         pos = i + offset
         odevr1, odevr2, ndevr1, ndevr2 = rota1[(i % len(rota1))], rota2[(i % len(rota2))], nrota1[(i % len(nrota1))], nrota2[(i % len(nrota2))]
@@ -48,7 +58,7 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
             sheet["A"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
         
-        sheet["B"+str(pos)] = people_dict[odevr1]["leader"]
+        sheet["B"+str(pos)] = get_lead(odevr1)
 
         sheet["C"+str(pos)] = people_dict[odevr2]["name"]
         if people_dict[odevr2]["has_experience"] == "FALSE":
@@ -56,7 +66,7 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
         elif is_in_last_month(odevr2):
             sheet["C"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
-        sheet["D"+str(pos)] = people_dict[odevr2]["leader"]
+        sheet["D"+str(pos)] = get_lead(odevr2)
         
         sheet["E"+str(pos)] = "=OR(D{pos}=D{npos},D{pos}=B{npos},B{pos}=B{npos},B{pos}=D{npos})".format(pos=pos,npos=(pos+1))
 
@@ -67,7 +77,7 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
         elif is_in_last_month(ndevr1):
             sheet["F"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
-        sheet["G"+str(pos)] = people_dict[ndevr1]["leader"]
+        sheet["G"+str(pos)] = get_lead(ndevr1)
     
         sheet["H"+str(pos)] = people_dict[ndevr2]["name"]
         if people_dict[ndevr2]["has_experience"] == "FALSE":
@@ -75,7 +85,7 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
         elif is_in_last_month(ndevr2):
             sheet["H"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
-        sheet["I"+str(pos)] = people_dict[ndevr2]["leader"]
+        sheet["I"+str(pos)] = get_lead(ndevr2)
 
         sheet["J"+str(pos)]="=OR(I{pos}=I{npos},I{pos}=G{npos},G{pos}=G{npos},G{pos}=I{npos})".format(pos=pos,npos=(pos+1))
     
@@ -123,6 +133,9 @@ def adhoc_distance(newlist):
     """
     distance = 0
     for i, dev in enumerate(newlist):
+        if is_MLB_group(dev):
+            continue
+
         original_pos = int(dev[0:2]) % half_point
         new_pos = i % half_point
         distance = distance + abs(original_pos - new_pos)
@@ -144,17 +157,25 @@ def get_success_fitness():
 
         if i <= max_len/2 and (rota1[r1pos] in LAST_MONTH_L or rota2[r2pos] in LAST_MONTH_L):
             r +=1
-
     
     return r #+ adhoc_distance(rota1+rota2)
 
 def get_boss(cel):
     return cel[2]
 
-def is_new(cel):
-    return cel[-1:] == "x"
+def is_MLB_group(dev):
+    return dev[0] == "G"
+
+def is_new(cel):    
+    return cel[-1:] == "x" or is_MLB_group(cel)
 
 def is_adjacent(rota1, rota2, i, j):
+
+    dev1, dev2 = rota1[i % len(rota1)], rota1[(j+1)%len(rota1)]    
+    if is_MLB_group(dev1) or is_MLB_group(dev2):
+        return False
+    
+    # FIXME adjacent to mlb_group is irrelevant but the other half must be checked
   
     a1, a2 = get_boss(rota1[i % len(rota1)]), get_boss(rota1[(j+1)%len(rota1)])
     b1, b2 = get_boss(rota2[i % len(rota2)]), get_boss(rota2[(j+1)%len(rota2)])
@@ -168,6 +189,8 @@ def is_adjacent(rota1, rota2, i, j):
     return False
 
 def is_same_boss(dev1, dev2):
+    if is_MLB_group(dev1) or is_MLB_group(dev2):
+        return False
     return get_boss(dev1) == get_boss(dev2)
 def are_both_new(dev1,dev2):
     return is_new(dev1) and is_new(dev2)
@@ -265,25 +288,56 @@ for i, person in enumerate(people_list):
 print(">>> Before turning mlb_devs into single blocks")
 print(people_dict)
 
-mlb_devs_group_total = len(mlb_devs) / 7
+MAX_MLB_DEVS = 2
 
-if len(mlb_devs) / 2 % 2 != 0:
+
+
+"""
+if len(mlb_devs) % 2 != 0:
     #exit
     print("Error: mlb_devs_total is not even")
     exit(1)
+"""
 
-mlb_devs_groups ={}
+
+print(">>> MLB debs")
+print(mlb_devs)
+
+mlb_devs_groups ={} # dev name -> group code
+mlb_group_lead ={} # group code -> leader code
 
 group_id = 0
-for i in range(mlb_devs):
-    mlb_devs[i] = "G_{:02d}".format(group_id)
-    if i % mlb_devs_group_total == 0:
+for i in range(len(mlb_devs)):
+    group_code ="G_{:02d}".format(group_id)
+    mlb_devs_groups[mlb_devs[i]] = group_code
+
+    if mlb_group_lead.get(group_code) == None:
+        mlb_group_lead[group_code] = [get_boss(mlb_devs[i])]
+    else:
+        if get_boss(mlb_devs[i]) not in mlb_group_lead[group_code]:
+            mlb_group_lead[group_code].append(get_boss(mlb_devs[i]))
+
+    if i % MAX_MLB_DEVS % 7 == 0:
         group_id += 1
+
+
+
 
 print(">>> MLB Blocks")
 print(mlb_devs_groups)
+print(">>> MLB Group Leaders")
+print(mlb_group_lead )
 
+# replace in devs the mlb_devs with the group code
+for i in range(len(devs)):
+    if devs[i] in mlb_devs:
+        devs[i] = mlb_devs_groups[devs[i]]
 
+# delete repeated from devs
+devs = list(dict.fromkeys(devs))
+
+print(">>> After turning mlb_devs into single blocks")
+print(devs)
 
 exit(0)
 
@@ -297,6 +351,8 @@ print(LAST_MONTH_L)
 rota1, rota2 = devs[:half_point],devs[half_point:]
 orota1, orota2 = rota1+[], rota2+[]
 max_len = max(len(rota1), len(rota2))
+
+# rota2 is the only one that can have mlb devs
 
 max_repeat = 10000
 for j in range(max_repeat):
@@ -328,7 +384,30 @@ for j in range(max_repeat):
     if get_success_fitness() == 0:
         break
 
-write_solution_to_excel(orota1, orota2,rota1, rota2, people_dict)
+#write_solution_to_excel(orota1, orota2,rota1, rota2, people_dict)
+    
+def get_name(dev):
+    if is_MLB_group(dev):
+        return dev
+    return people_dict[dev]["name"]
+
+def get_leader_by_code(code):
+    # iterate leader_codes and find the code by value
+    for k,v in leader_codes.items():
+        if v == code:
+            return k
+
+def get_lead(dev):
+    ret = ""
+    if is_MLB_group(dev):
+        for l in mlb_group_lead[dev]:
+            ret += get_leader_by_code(l) + ", " # doesnt work, have to get list of leads of mlb_group_lead and then from
+        return ret
+    return people_dict[dev]["leader"]
+
+
+print(">>> Leader codes")
+print(leader_codes)
 
 for i in range(max_len):
     r2pos = i % len(rota2)    
@@ -346,8 +425,8 @@ for i in range(max_len):
             is_same_boss(rota1[r1pos], rota2[r2pos]) or
             are_both_new(rota1[r1pos], rota2[r2pos])
         ),
-        people_dict[dev1]["name"],"(.)" if is_in_last_month(dev1) else "",people_dict[dev1]["leader"],
-        people_dict[dev2]["name"],"(.)" if is_in_last_month(dev2) else "",people_dict[dev2]["leader"],
+        get_name(dev1),"(.)" if is_in_last_month(dev1) else "",get_lead(dev1),
+        get_name(dev2),"(.)" if is_in_last_month(dev2) else "",get_lead(dev2),
         
         ))
 
