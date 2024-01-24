@@ -47,24 +47,28 @@ def write_solution_to_excel(rota1, rota2, nrota1, nrota2, people_dict):
     los devs de esos grupos se eliminan de la lista, no hay replace
     """
 
+    get_lead = lambda x: people_dict[x]["leader"]
+
     for i in range(max(len(rota1), len(rota2))):
         pos = i + offset
         odevr1, odevr2, ndevr1, ndevr2 = rota1[(i % len(rota1))], rota2[(i % len(rota2))], nrota1[(i % len(nrota1))], nrota2[(i % len(nrota2))]
 
         sheet["A"+str(pos)] = people_dict[odevr1]["name"]
+        name_cell = sheet["A"+str(pos)]
         if people_dict[odevr1]["has_experience"] == "FALSE":
-            sheet["A"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+            name_cell.fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
         elif is_in_last_month(odevr1):
-            sheet["A"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
+            name_cell.fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
         
-        sheet["B"+str(pos)] = get_lead(odevr1)
+        sheet["B"+str(pos)] = get_lead(odevr1) # FIXME implement get_lead, get leader name by code
 
         sheet["C"+str(pos)] = people_dict[odevr2]["name"]
+        r2_name_cell = sheet["C"+str(pos)]
         if people_dict[odevr2]["has_experience"] == "FALSE":
-            sheet["C"+str(pos)].fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
+            r2_name_cell.fill = PatternFill(start_color="FFFF00",end_color="FFFF00", fill_type="solid") # yellow
         elif is_in_last_month(odevr2):
-            sheet["C"+str(pos)].fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
+            r2_name_cell.fill = PatternFill(start_color="CCFFFF",end_color="CCFFFF", fill_type="solid") # light blue
 
         sheet["D"+str(pos)] = get_lead(odevr2)
         
@@ -126,6 +130,9 @@ orota1, orota2 = [],[]
 max_len = max(len(rota1), len(rota2))
 l1,l2 = "", ""
 last_offset = 1
+
+def get_lead(dev):
+    return dev[2:4]
 
 def adhoc_distance(newlist):
     """
@@ -509,9 +516,13 @@ for k,v in mlb_group_lead.items():
     print("{}\t{}".format(k, lead_group))    
 
 
-print("\n>>> Devs in mlb groups\nDev\tGroup")
+print("\n>>> Devs in mlb groups\nCode\tDev\tGroup")
 for k,v in mlb_devs_groups.items():
-    print("{}\t{}".format(people_dict[k]['name'],v))
+    print("{}\t{}\t{}".format(k,people_dict[k]['name'],v))
+
+print("\n>>> All Devs groups\nCode\tDev\tGroup\tleader")
+for k,v in people_dict.items():
+    print("{}\t{}\t{}\t{}".format(k,v['name'],v['mlb'],v['leader']))
 
 
 for i in range(max_len):
