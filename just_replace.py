@@ -299,6 +299,7 @@ def replace_better_pos(rota1, rota2, i):
         """
         r2pos = (j+i+offset) % len(rota2)
         r1pos = (j+i+offset) % len(rota1)
+       
         if not is_same_boss(rota1[i%len(rota1)], rota2[r2pos]) and not is_adjacent(rota1,rota2,i,j) and not are_both_new(rota1[i%len(rota1)], rota2[r2pos]):
             #replace
             bf = get_success_fitness()
