@@ -236,9 +236,12 @@ with open("last_month.csv", "r") as file:
 
 devs = []
 dev_by_name = {}
+mlb_devs = []
 for i, person in enumerate(people_list):
     if not (leader_codes.get(person["leader"]) != None):
-        leader_codes[person["leader"]] = chr(len(leader_codes) + 65) # if it is  mlb the lead should be the same, another alternative is to do leader as a list of leaders
+        leader_codes[person["leader"]] = chr(len(leader_codes) + 65) # increment letter from quantity of leaders like autoinc
+    
+    # if it is  mlb the lead should be the same, another alternative is to do leader as a list of leaders
     has_experience = person["has_experience"] == "TRUE" or person["name"] in last_month
     code =  "{:02d}{}{}{}".format(
             i,
@@ -255,9 +258,34 @@ for i, person in enumerate(people_list):
         else should keep the same logic
         
     """
+    if person["mlb"] == "TRUE":
+        mlb_devs.append(code)
     devs.append(code)
 
+print(">>> Before turning mlb_devs into single blocks")
 print(people_dict)
+
+mlb_devs_group_total = len(mlb_devs) / 7
+
+if len(mlb_devs) / 2 % 2 != 0:
+    #exit
+    print("Error: mlb_devs_total is not even")
+    exit(1)
+
+mlb_devs_groups ={}
+
+group_id = 0
+for i in range(mlb_devs):
+    mlb_devs[i] = "G_{:02d}".format(group_id)
+    if i % mlb_devs_group_total == 0:
+        group_id += 1
+
+print(">>> MLB Blocks")
+print(mlb_devs_groups)
+
+
+
+exit(0)
 
 original_devs_arrange = "-".join(devs)
 half_point = int(len(devs)/2)
