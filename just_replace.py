@@ -149,15 +149,17 @@ def get_success_fitness():
         dev1 = rota1[r1pos]
         dev2 = rota2[r2pos]
         if is_adjacent(rota1,rota2,i,i):
-            r +=1
+            print("<<<< add 70 is adjacent {} {}".format(dev1, dev2))
+            r +=70
+            print("><<<< r: ",r)
         if is_same_boss(rota1[r1pos], rota2[r2pos]):
             r +=1
         if are_both_new(rota1[r1pos], rota2[r2pos]):
             r +=1
 
-        if i <= max_len/2 and (rota1[r1pos] in LAST_MONTH_L or rota2[r2pos] in LAST_MONTH_L):
+        if i <= max_len/2 and (dev1 in LAST_MONTH_L or dev2 in LAST_MONTH_L):
             r +=1
-    
+    print(">>> R",r)
     return r #+ adhoc_distance(rota1+rota2)
 
 def get_boss(cel):
@@ -169,16 +171,97 @@ def is_MLB_group(dev):
 def is_new(cel):    
     return cel[-1:] == "x" or is_MLB_group(cel)
 
-def is_adjacent(rota1, rota2, i, j):
+def check_mlb_adjacent(rota1, rota2, i,j):
+    """
+    i = current position
+    j = future position
+    """
 
-    dev1, dev2 = rota1[i % len(rota1)], rota1[(j+1)%len(rota1)]    
-    if is_MLB_group(dev1) or is_MLB_group(dev2):
-        return False
+    # check that rota2 dev is going to be ok with future pos in J
+
     
-    # FIXME adjacent to mlb_group is irrelevant but the other half must be checked
+    future_r2_next = rota2[(j+1) % len(rota2)]
+    future_r2_prev = rota2[(j-1) % len(rota2)]
+
   
+    
+
+    next_to_group_pos = 0
+    prev_to_group_pos = 0
+    sec_mlb_group = 0
+
+    # in next pos mlb group can only be adjacent to another mlb group
+    if is_MLB_group(future_r2_next):
+        
+        next_to_group_pos = j + 2
+        prev_to_group_pos = j - 1
+        sec_mlb_group = j+1
+        #print("Means pos " ,future_r2_next, " is next to mlb group in pos",sec_mlb_group)
+        if is_MLB_group(future_r2_prev):
+            return True
+    if is_MLB_group(future_r2_prev):
+        next_to_group_pos = j + 1
+        prev_to_group_pos = j - 2
+        sec_mlb_group = j-1
+        #print("Means pos " ,future_r2_prev, " is next to mlb group in pos",sec_mlb_group)
+        if is_MLB_group(future_r2_next):
+            return True
+    else:
+        return True # no mlb group adjacent to next pos
+    
+    future_r2_next_to_group = rota2[next_to_group_pos % len(rota2)]
+    future_r2_prev_to_group = rota2[prev_to_group_pos % len(rota2)]
+
+    future_r1_next_to_group = rota1[next_to_group_pos % len(rota1)]
+    future_r1_prev_to_group = rota1[prev_to_group_pos % len(rota1)]
+
+    future_r1_pos_1 =  rota1[prev_to_group_pos+1 % len(rota1)]
+    future_r1_pos_2 =  rota1[prev_to_group_pos+2 % len(rota1)]
+    
+    
+    adjacent_bosses = [future_r2_next_to_group, future_r2_prev_to_group, future_r1_next_to_group, future_r1_prev_to_group, future_r1_pos_1, future_r1_pos_2]
+
+    # FIXME hay que chequear si queremos que los grupos adjacentes sean siempre con mismo dev o diferente
+
+    # liders de los 2 grupos
+    #print("sec_mlb_group is ", sec_mlb_group)
+    g1, g2 = rota2[i % len(rota2)], rota2[sec_mlb_group % len(rota2)]
+    mlb_group_leads = mlb_group_lead[g1] + mlb_group_lead[g2]
+
+    # check intersecciones
+    for boss in mlb_group_leads:
+        if boss in adjacent_bosses:
+            return True
+        
+    return False
+
+
+def is_adjacent(rota1, rota2, i, j):
+    """
+    i = current position
+    j = future position
+    """
+    devR2 = rota2[i % len(rota2)]
+
+    if is_MLB_group(devR2):
+        ret= check_mlb_adjacent(rota1, rota2, i,j)
+        # print all incomming parameters
+        print("MLB Is adjacent {}, rota1 dev [{}]: {} rota2 dev[{}] {}, next {} rota1 {}, next {} rota2 {}".format(
+                ret,
+                i,rota1[i%len(rota1)],
+                i,rota2[i%len(rota2)],
+                j,rota1[j%len(rota1)],
+                j,rota2[j%len(rota2)]
+            ))
+        return ret
+
+
+
+
     a1, a2 = get_boss(rota1[i % len(rota1)]), get_boss(rota1[(j+1)%len(rota1)])
     b1, b2 = get_boss(rota2[i % len(rota2)]), get_boss(rota2[(j+1)%len(rota2)])
+
+     
 
     if a1 in [a2, b2]:
         return True            
@@ -206,8 +289,14 @@ def get_offset():
     
 
 def replace_better_pos(rota1, rota2, i):
+    """
+    i = current position in both rota1 and rota2
+    """
     offset = get_offset()
     for j in range(max_len):
+        """
+        j is next position
+        """
         r2pos = (j+i+offset) % len(rota2)
         r1pos = (j+i+offset) % len(rota1)
         if not is_same_boss(rota1[i%len(rota1)], rota2[r2pos]) and not is_adjacent(rota1,rota2,i,j) and not are_both_new(rota1[i%len(rota1)], rota2[r2pos]):
@@ -342,7 +431,7 @@ devs = list(dict.fromkeys(devs))
 print(">>> After turning mlb_devs into single blocks")
 print(devs)
 
-exit(0)
+#exit(0)
 
 original_devs_arrange = "-".join(devs)
 half_point = int(len(devs)/2)
@@ -357,7 +446,7 @@ max_len = max(len(rota1), len(rota2))
 
 # rota2 is the only one that can have mlb devs
 
-max_repeat = 10000
+max_repeat = 100000
 for j in range(max_repeat):
     print("iter",j, "rate", get_success_fitness(),"adhoc_distance" ,adhoc_distance(rota1+rota2))    
     for i in range(max_len):
