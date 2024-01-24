@@ -12,7 +12,8 @@ last_offset = 1
 
 
 import csv
-import functions
+from functions import *
+
 
 people_dict ={}
 
@@ -78,6 +79,8 @@ if len(mlb_devs) % 2 != 0:
 print(">>> MLB debs")
 print(mlb_devs)
 
+
+
 mlb_devs_groups ={} # dev name -> group code
 mlb_group_lead ={} # group code -> leader code
 
@@ -119,8 +122,25 @@ print(devs)
 
 #exit(0)
 
+
+
 original_devs_arrange = "-".join(devs)
 half_point = int(len(devs)/2)
+
+
+def adhoc_distance(newlist):
+    """
+    check distance by sum of the differences with original pos in whatever rotation
+    """
+    distance = 0
+    for i, dev in enumerate(newlist):
+        if is_MLB_group(dev):
+            continue
+
+        original_pos = int(dev[0:2]) % half_point
+        new_pos = i % half_point
+        distance = distance + abs(original_pos - new_pos)
+    return distance
 
 for lm in last_month:
     LAST_MONTH_L.append(dev_by_name[lm["name"]])
