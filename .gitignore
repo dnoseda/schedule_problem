@@ -5,3 +5,4 @@ people.csv
 treeMapper.html
 *.xlsx
 *.xlsx#
+__pycache__
