@@ -496,11 +496,11 @@ def get_lead(dev):
     return people_dict[dev]["leader"]
 
 
-print(">>> Leader codes\nName\tCode")
+print("\n>>> Leader codes\nName\tCode")
 for k,v in leader_codes.items():
     print("{}\t{}".format(k,v))
 
-print(">>> MLB Leaders group codes\nGroup\tLeaders")
+print("\n>>> MLB Leaders group codes\nGroup\tLeaders")
 for k,v in mlb_group_lead.items():    
     lead_group = ""
     
@@ -509,7 +509,7 @@ for k,v in mlb_group_lead.items():
     print("{}\t{}".format(k, lead_group))    
 
 
-print(">>> Devs in mlb groups\nDev\tGroup")
+print("\n>>> Devs in mlb groups\nDev\tGroup")
 for k,v in mlb_devs_groups.items():
     print("{}\t{}".format(people_dict[k]['name'],v))
 
