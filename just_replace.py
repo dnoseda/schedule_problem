@@ -328,10 +328,13 @@ print(mlb_devs_groups)
 print(">>> MLB Group Leaders")
 print(mlb_group_lead )
 
-# replace in devs the mlb_devs with the group code
-for i in range(len(devs)):
-    if devs[i] in mlb_devs:
-        devs[i] = mlb_devs_groups[devs[i]]
+# delete all mlb devs from devs
+for mlb_dev in mlb_devs:
+    devs.remove(mlb_dev)
+
+# add all keys from mlb_group_lead to devs at the end
+devs.extend(list(mlb_group_lead.keys()))
+
 
 # delete repeated from devs
 devs = list(dict.fromkeys(devs))
