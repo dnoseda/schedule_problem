@@ -150,20 +150,26 @@ def adhoc_distance(newlist):
 
 def get_success_fitness():
     r = 0
+    
     for i in range(max_len):
         r2pos = i % len(rota2)    
         r1pos = i % len(rota1)
         dev1 = rota1[r1pos]
         dev2 = rota2[r2pos]
-        if is_adjacent(rota1,rota2,i,i):
-            r +=70            
-        if is_same_boss(rota1[r1pos], rota2[r2pos]):
-            r +=1
-        if are_both_new(rota1[r1pos], rota2[r2pos]):
-            r +=1
 
-        if i <= max_len/2 and (dev1 in LAST_MONTH_L or dev2 in LAST_MONTH_L):
-            r +=1
+        
+        eval_dict = {
+            "adjacent": {"f":is_adjacent(rota1,rota2,i,i),"value":1},
+            "same_boss": {"f":is_same_boss(dev1, dev2),"value":1},
+            "both_new": {"f":are_both_new(dev1, dev2),"value":10},
+            "last_month": {"f":i <= max_len/2 and (dev1 in LAST_MONTH_L or dev2 in LAST_MONTH_L),"value":1},
+            "mlb_adjacent": {"f":not(is_MLB_group(rota1[i%len(rota1)]) and is_MLB_group(rota2[(i+1)%len(rota2)]) or is_MLB_group(rota2[(i-1)%len(rota2)])), "value":1},
+        }
+
+        for k,v in eval_dict.items():
+            #print("¢¢¢¢¢¢¢{}: {}".format(k,v))
+            if v["f"]:
+                r += v["value"]
     
     return r #+ adhoc_distance(rota1+rota2)
 
@@ -220,8 +226,8 @@ def check_mlb_adjacent(rota1, rota2, i,j):
     future_r1_next_to_group = rota1[next_to_group_pos % len(rota1)]
     future_r1_prev_to_group = rota1[prev_to_group_pos % len(rota1)]
 
-    future_r1_pos_1 =  rota1[prev_to_group_pos+1 % len(rota1)]
-    future_r1_pos_2 =  rota1[prev_to_group_pos+2 % len(rota1)]
+    future_r1_pos_1 =  rota1[(prev_to_group_pos+1) % len(rota1)]
+    future_r1_pos_2 =  rota1[(prev_to_group_pos+2) % len(rota1)]
     
     
     adjacent_bosses = [future_r2_next_to_group, future_r2_prev_to_group, future_r1_next_to_group, future_r1_prev_to_group, future_r1_pos_1, future_r1_pos_2]
@@ -251,6 +257,7 @@ def is_adjacent(rota1, rota2, i, j):
     if is_MLB_group(devR2):
         ret= check_mlb_adjacent(rota1, rota2, i,j)
         # print all incomming parameters
+        """
         print("MLB Is adjacent {}, rota1 dev [{}]: {} rota2 dev[{}] {}, next {} rota1 {}, next {} rota2 {}".format(
                 ret,
                 i,rota1[i%len(rota1)],
@@ -258,6 +265,7 @@ def is_adjacent(rota1, rota2, i, j):
                 j,rota1[j%len(rota1)],
                 j,rota2[j%len(rota2)]
             ))
+        """
         return ret
 
 
@@ -276,9 +284,28 @@ def is_adjacent(rota1, rota2, i, j):
 
     return False
 
+def same_boss_MLB(dev1,dev2):
+    leads1 = []
+    if is_MLB_group(dev1):
+        leads1 = mlb_group_lead[dev1]
+    else:
+        leads1 = [get_boss(dev1)]
+    
+    if is_MLB_group(dev2):
+        leads2 = mlb_group_lead[dev2]
+    else:
+        leads2 = [get_boss(dev2)]
+
+    # check intersecciones
+    for boss in leads1:
+        if boss in leads2:
+            return True
+    return False
+    
+
 def is_same_boss(dev1, dev2):
     if is_MLB_group(dev1) or is_MLB_group(dev2):
-        return False
+        return same_boss_MLB(dev1, dev2)
     return get_boss(dev1) == get_boss(dev2)
 def are_both_new(dev1,dev2):
     return is_new(dev1) and is_new(dev2)
@@ -451,7 +478,7 @@ max_len = max(len(rota1), len(rota2))
 
 # rota2 is the only one that can have mlb devs
 
-max_repeat = 100000
+max_repeat = 1000
 for j in range(max_repeat):
     print("iter",j, "rate", get_success_fitness(),"adhoc_distance" ,adhoc_distance(rota1+rota2))    
     for i in range(max_len):
@@ -488,6 +515,20 @@ def get_name(dev):
         return dev
     return people_dict[dev]["name"]
 
+def get_name_detailed(dev):
+    if is_MLB_group(dev):
+        names = dev + ": "
+        #iterate mlb_devs_groups and get the name of the dev
+        for k, v in mlb_devs_groups.items():        
+            if mlb_devs_groups[k] == dev:
+                names += people_dict[k]["name"] + ", "
+    # delete trailing ", "
+        return names[:-2]
+    else:
+        return people_dict[dev]["name"]
+
+        
+
 def get_leader_by_code(code):
     # iterate leader_codes and find the code by value
     for k,v in leader_codes.items():
@@ -499,9 +540,29 @@ def get_lead(dev):
     if is_MLB_group(dev):
         for l in mlb_group_lead[dev]:
             ret += get_leader_by_code(l) + ", " # doesnt work, have to get list of leads of mlb_group_lead and then from
+        # if ret containts ", " delete it
+        if ", " in ret:
+            ret = ret[:-2]
         return ret
     return people_dict[dev]["leader"]
 
+
+print("\n>>> Fine tuning...\n")
+## iterate and try replace rota2 cells with every position of rota2, then check if it's better than the current one with the get_success_fitness function
+for i in range(len(rota2)):
+    for j in range(len(rota2)):
+        print("{:02d} - {:02d} = {}".format(i,j,get_success_fitness()))
+        for r1i in range(len(rota1)):
+            for r1j in range(len(rota1)):              
+                if i == j:
+                    continue
+                before_perf = get_success_fitness()
+                rota2[i], rota2[j] = rota2[j], rota2[i]
+                rota1[r1i], rota1[r1j] = rota1[r1j], rota1[r1i]
+                after_perf = get_success_fitness()
+                if not(after_perf < before_perf):
+                    rota2[i], rota2[j] = rota2[j], rota2[i]
+                    rota1[r1i], rota1[r1j] = rota1[r1j], rota1[r1i]                    
 
 print("\n>>> Leader codes\nName\tCode")
 for k,v in leader_codes.items():
@@ -525,6 +586,9 @@ for k,v in people_dict.items():
     print("{}\t{}\t{}\t{}".format(k,v['name'],v['mlb'],v['leader']))
 
 
+
+
+print("\n>>> Devs in mlb groups\nCode R1\tCode R2\tadjacent\tsame boss\tboth new\tconflict?\tR1 Dev\tR1 Lead\tR2 Dev\tR2 Lead")
 for i in range(max_len):
     r2pos = i % len(rota2)    
     r1pos = i % len(rota1)
@@ -541,8 +605,8 @@ for i in range(max_len):
             is_same_boss(rota1[r1pos], rota2[r2pos]) or
             are_both_new(rota1[r1pos], rota2[r2pos])
         ),
-        get_name(dev1),"(.)" if is_in_last_month(dev1) else "",get_lead(dev1),
-        get_name(dev2),"(.)" if is_in_last_month(dev2) else "",get_lead(dev2),
+        get_name_detailed(dev1),"(.)" if is_in_last_month(dev1) else "",get_lead(dev1),
+        get_name_detailed(dev2),"(.)" if is_in_last_month(dev2) else "",get_lead(dev2),
         
         ))
 
