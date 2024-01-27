@@ -148,6 +148,60 @@ def adhoc_distance(newlist):
         distance = distance + abs(original_pos - new_pos)
     return distance
 
+def not_mlb_group_join(rota2,pos):
+    dev = rota2[pos % len(rota2)]
+
+    if not is_MLB_group(dev):
+        return False    
+    
+    prev_dev = rota2[(pos-1) % len(rota2)]
+    next_dev = rota2[(pos+1) % len(rota2)]
+
+    if prev_dev == dev: #ok 
+        if is_MLB_group(next_dev):
+            return True # should not have next group
+        
+    
+    if next_dev == dev:
+        if is_MLB_group(prev_dev):
+            return True ## should not have prev group
+    
+    return False
+
+def same_boss_mlb_surround(rota1, rota2, i):
+
+    # check whether rota2 is mlb group
+    dev2 = rota2[i % len(rota2)]
+    if not is_MLB_group(dev2):
+        return False
+    
+    # identify where surrounding
+    prev_dev2 = rota2[(i-1) % len(rota2)]
+    next_dev2 = rota2[(i+1) % len(rota2)]
+
+    surrounding_leads = []
+    if next_dev2 == dev2: # same group
+        surrounding_leads.append(get_boss(rota1[(i-1) % len(rota1)]))
+        surrounding_leads.append(get_boss(rota1[(i+2) % len(rota1)]))
+
+        surrounding_leads.append(get_boss(rota2[(i-1) % len(rota2)]))
+        surrounding_leads.append(get_boss(rota2[(i+2) % len(rota2)]))
+    elif prev_dev2 == dev2:
+        surrounding_leads.append(get_boss(rota1[(i-2) % len(rota1)]))
+        surrounding_leads.append(get_boss(rota1[(i+1) % len(rota1)]))
+        
+        surrounding_leads.append(get_boss(rota2[(i-2) % len(rota2)]))
+        surrounding_leads.append(get_boss(rota2[(i+1) % len(rota2)]))
+
+
+    # check for intersections of surrounding bosses rota2 and rota1
+    for lead in surrounding_leads:
+        if lead in mlb_group_lead[dev2]:
+            return True
+        
+    return False
+
+
 def get_success_fitness():
     r = 0
     
@@ -157,13 +211,16 @@ def get_success_fitness():
         dev1 = rota1[r1pos]
         dev2 = rota2[r2pos]
 
+        # TODO: check that mlbgroups are adjacent with same ID
         
         eval_dict = {
             "adjacent": {"f":is_adjacent(rota1,rota2,i,i),"value":1},
             "same_boss": {"f":is_same_boss(dev1, dev2),"value":1},
             "both_new": {"f":are_both_new(dev1, dev2),"value":10},
             "last_month": {"f":i <= max_len/2 and (dev1 in LAST_MONTH_L or dev2 in LAST_MONTH_L),"value":1},
-            "mlb_adjacent": {"f":not(is_MLB_group(rota1[i%len(rota1)]) and is_MLB_group(rota2[(i+1)%len(rota2)]) or is_MLB_group(rota2[(i-1)%len(rota2)])), "value":1},
+            "all_r2_mlb": {"f":is_MLB_group(dev1),"value":10}, # check all mlb groups on rota2 and none on rota1,
+            "mlb_group_join": {"f":not_mlb_group_join(rota2,i),"value":10},
+            "adj_mlb": {"f":same_boss_mlb_surround(rota1, rota2, i),"value":1},
         }
 
         for k,v in eval_dict.items():
@@ -182,70 +239,6 @@ def is_MLB_group(dev):
 def is_new(cel):    
     return cel[-1:] == "x" or is_MLB_group(cel)
 
-def check_mlb_adjacent(rota1, rota2, i,j):
-    """
-    i = current position
-    j = future position
-    """
-
-    # check that rota2 dev is going to be ok with future pos in J
-
-    
-    future_r2_next = rota2[(j+1) % len(rota2)]
-    future_r2_prev = rota2[(j-1) % len(rota2)]
-
-  
-    
-
-    next_to_group_pos = 0
-    prev_to_group_pos = 0
-    sec_mlb_group = 0
-
-    # in next pos mlb group can only be adjacent to another mlb group
-    if is_MLB_group(future_r2_next):
-        
-        next_to_group_pos = j + 2
-        prev_to_group_pos = j - 1
-        sec_mlb_group = j+1
-        #print("Means pos " ,future_r2_next, " is next to mlb group in pos",sec_mlb_group)
-        if is_MLB_group(future_r2_prev):
-            return True
-    if is_MLB_group(future_r2_prev):
-        next_to_group_pos = j + 1
-        prev_to_group_pos = j - 2
-        sec_mlb_group = j-1
-        #print("Means pos " ,future_r2_prev, " is next to mlb group in pos",sec_mlb_group)
-        if is_MLB_group(future_r2_next):
-            return True
-    else:
-        return True # no mlb group adjacent to next pos
-    
-    future_r2_next_to_group = rota2[next_to_group_pos % len(rota2)]
-    future_r2_prev_to_group = rota2[prev_to_group_pos % len(rota2)]
-
-    future_r1_next_to_group = rota1[next_to_group_pos % len(rota1)]
-    future_r1_prev_to_group = rota1[prev_to_group_pos % len(rota1)]
-
-    future_r1_pos_1 =  rota1[(prev_to_group_pos+1) % len(rota1)]
-    future_r1_pos_2 =  rota1[(prev_to_group_pos+2) % len(rota1)]
-    
-    
-    adjacent_bosses = [future_r2_next_to_group, future_r2_prev_to_group, future_r1_next_to_group, future_r1_prev_to_group, future_r1_pos_1, future_r1_pos_2]
-
-    # FIXME hay que chequear si queremos que los grupos adjacentes sean siempre con mismo dev o diferente
-
-    # liders de los 2 grupos
-    #print("sec_mlb_group is ", sec_mlb_group)
-    g1, g2 = rota2[i % len(rota2)], rota2[sec_mlb_group % len(rota2)]
-    mlb_group_leads = mlb_group_lead[g1] + mlb_group_lead[g2]
-
-    # check intersecciones
-    for boss in mlb_group_leads:
-        if boss in adjacent_bosses:
-            return True
-        
-    return False
-
 
 def is_adjacent(rota1, rota2, i, j):
     """
@@ -255,20 +248,7 @@ def is_adjacent(rota1, rota2, i, j):
     devR2 = rota2[i % len(rota2)]
 
     if is_MLB_group(devR2):
-        ret= check_mlb_adjacent(rota1, rota2, i,j)
-        # print all incomming parameters
-        """
-        print("MLB Is adjacent {}, rota1 dev [{}]: {} rota2 dev[{}] {}, next {} rota1 {}, next {} rota2 {}".format(
-                ret,
-                i,rota1[i%len(rota1)],
-                i,rota2[i%len(rota2)],
-                j,rota1[j%len(rota1)],
-                j,rota2[j%len(rota2)]
-            ))
-        """
-        return ret
-
-
+        return False
 
 
     a1, a2 = get_boss(rota1[i % len(rota1)]), get_boss(rota1[(j+1)%len(rota1)])
@@ -285,6 +265,9 @@ def is_adjacent(rota1, rota2, i, j):
     return False
 
 def same_boss_MLB(dev1,dev2):
+    if dev1 == dev2:
+        return False
+    
     leads1 = []
     if is_MLB_group(dev1):
         leads1 = mlb_group_lead[dev1]
@@ -429,8 +412,9 @@ print(mlb_devs)
 mlb_devs_groups ={} # dev name -> group code
 mlb_group_lead ={} # group code -> leader code
 
-group_id = 0
+group_id = 1
 for i in range(len(mlb_devs)):
+    
     group_code ="G_{:02d}".format(group_id)
     mlb_devs_groups[mlb_devs[i]] = group_code
 
@@ -440,8 +424,9 @@ for i in range(len(mlb_devs)):
         if get_boss(mlb_devs[i]) not in mlb_group_lead[group_code]:
             mlb_group_lead[group_code].append(get_boss(mlb_devs[i]))
 
-    if i % MAX_MLB_DEVS % 7 == 0:
+    if (i+1) % MAX_MLB_DEVS == 0:
         group_id += 1
+    
 
 
 
@@ -459,6 +444,9 @@ devs.extend(list(mlb_group_lead.keys()))
 
 # delete repeated from devs
 devs = list(dict.fromkeys(devs))
+
+# add again groups keys to set groups by pairs
+devs.extend(list(mlb_group_lead.keys()))
 
 print(">>> After turning mlb_devs into single blocks")
 print(devs)
