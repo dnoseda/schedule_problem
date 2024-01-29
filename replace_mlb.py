@@ -1,5 +1,6 @@
+import random
 
-class Solution:
+class RotationSchedule:
     def __init__(self):
         self.rota = []    
    
@@ -7,7 +8,7 @@ class Solution:
     def fitness(self):
         fns ={
             "check_mlb_groups": {
-                "desc":"check if all mlb groups are present in the solution",
+                "desc":"check if all mlb groups are present in the RotationSchedule",
                 "weight": 1,
                 "func": lambda: all(not s.startswith("g") for s in self.get_rota1()) and any(s.startswith("g") for s in self.get_rota2())
             },
@@ -68,7 +69,12 @@ class Solution:
         Also use module to get positions
         """
         print("called with ", from_, to)
-        is_rota2_from = from_ >= self.get_half_point()
+        from_ = from_% len(self.rota)
+        to = to % len(self.rota)
+        if from_ == to:
+            print("Err nop same pos")
+            return False
+        is_rota2_from = from_  >= self.get_half_point()
         is_rota2_to = to >= self.get_half_point()
 
 
@@ -150,14 +156,21 @@ class Solution:
             
             else: # simpliest scenario
                 print("swapping")
-                self.rota[to], self.rota[from_] = self.rota[from_], self.rota[to] # swap
+                self.rota[to ], self.rota[from_] = self.rota[from_], self.rota[to] # swap
             
         
 
         # if mlb group can only move within rota2
         # mind the size of the block
         return True
-    
+    def stash(self):
+        self.stash_copy = self.rota.copy()
+    def restore(self):
+        self.rota = self.stash_copy.copy()
+        self.stash_copy = None
+    def commit(self):
+        self.stash_copy = None
+
 class Person:
     def __init__(self, code):
         self.name = "WIP" # TODO get from dict
@@ -182,7 +195,7 @@ def main():
             MLB blocks can only be moved within rota2
     """
 
-    s = Solution()
+    s = RotationSchedule()
 
     #          0 , 1 , 2 , 3 , 4  , 5  , 6 , 7
     s.rota = ["a","b","c","d","g1","g1","j","h"]
@@ -202,6 +215,32 @@ def main():
     s.move_block(4, 7 )
     print("\n\nafter other move in r2")
     s.pretty_print()
+
+    ## repeating N same operation
+    ## get random position to start and another random position to move
+    ## move block and check if fitness improves
+
+    max_repeat = 100
+
+    for i in range(max_repeat):
+        random_position = random.randint(0, len(s.rota) - 1)
+        print(random_position)
+        for from_pos in range(len(s.rota)):
+            for to_pos in range(len(s.rota)):
+                to_pos_with_offset = to_pos + random_position
+                before_fitness = s.fitness()
+                s.stash()
+                if s.move_block(from_pos, to_pos_with_offset):
+                    print("\n\nafter move in r2")
+                    s.pretty_print()
+                    if s.fitness() < before_fitness:
+                        s.restore()
+                    else:
+                        s.commit()
+                    print(s.fitness())
+                else:
+                    print("invalid move NOOP")
+                    continue
 
 if __name__ == "__main__":
     main()
