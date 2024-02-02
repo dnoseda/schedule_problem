@@ -68,12 +68,12 @@ class RotationSchedule:
         Move the whole location. from_ and to are indexes of the rota
         Also use module to get positions
         """
-        print("called with ", from_, to)
+        #print("called with ", from_, to)
         from_ = from_% len(self.rota)
         to = to % len(self.rota)
         if from_ == to:
-            print("Err nop same pos")
-            return False
+            #print("Err nop same pos")
+            return False    
         is_rota2_from = from_  >= self.get_half_point()
         is_rota2_to = to >= self.get_half_point()
 
@@ -83,7 +83,7 @@ class RotationSchedule:
         # mlb block should only move in rota2
         if dev.is_mlb_block():
             if not(is_rota2_from and is_rota2_to):
-                print("Err nop mlb and not rota2")
+                #print("Err nop mlb and not rota2")
                 return False # NOOP
             
             # get first and second pos of the block
@@ -91,58 +91,58 @@ class RotationSchedule:
             second_cell_pos = from_+1
             
             if self.get_code_pos(second_cell_pos) != dev.code:
-                print("Err NOOP can't move block if second cell is not the same as the first")
+                #print("Err NOOP can't move block if second cell is not the same as the first")
                 return False # NOOP can't move block if second cell is not the same as the first
             
             dev_to = Person(self.get_code_pos(to))
             if dev_to.is_mlb_block():
-                print("this should be 2 removes and identify first and second pos")
+                #print("this should be 2 removes and identify first and second pos")
                 return False #TODO FIXME this should be 2 removes and identify first and second pos
 
             ## have to do all with shift TODO mind no go more than half point
             # shift should do first remove, then insert
 
-            print("first_cell_pos")
-            self.print_rota_with_pos(first_cell_pos)
-            print("second_cell_pos")
-            self.print_rota_with_pos(second_cell_pos)
+            #print("first_cell_pos")
+            #self.print_rota_with_pos(first_cell_pos)
+            #print("second_cell_pos")
+            #self.print_rota_with_pos(second_cell_pos)
 
             # 1. remove first block
             self.remove_cell(first_cell_pos)
-            print("removed first cell >>>")
-            self.print_rota_with_pos(first_cell_pos)
+            #print("removed first cell >>>")
+            #self.print_rota_with_pos(first_cell_pos)
 
             self.remove_cell(first_cell_pos)
-            print("removed second cell >>>")
-            self.print_rota_with_pos(first_cell_pos)
+            #print("removed second cell >>>")
+            #self.print_rota_with_pos(first_cell_pos)
             adjusted_to = to - 2            
-            print("adjusted", adjusted_to)
-            self.print_rota_with_pos(adjusted_to)
+            #print("adjusted", adjusted_to)
+            #self.print_rota_with_pos(adjusted_to)
             
             # 2. insert first block the same place
             self.insert_cell(first_cell_pos, dev_to.code)
-            print("inserted first cell >>>")
-            self.print_rota_with_pos(adjusted_to)
+            #print("inserted first cell >>>")
+            #self.print_rota_with_pos(adjusted_to)
             adjusted_to = adjusted_to + 1
-            print("after adjust")
-            self.print_rota_with_pos(adjusted_to)
+            #print("after adjust")
+            #self.print_rota_with_pos(adjusted_to)
 
             
 
 
             # 3. remove second block
             self.remove_cell(adjusted_to ) # TODO what if the removes change positions of to
-            print("removed second cell >>>")
-            self.print_rota_with_pos(adjusted_to)
+            #print("removed second cell >>>")
+            #self.print_rota_with_pos(adjusted_to)
 
             # 4. insert second block the same place
             # in reverse order given that insert is before index
             self.insert_cell(adjusted_to, dev.code)
-            print("inserted first cell >>>")
-            self.print_rota_with_pos(adjusted_to)
+            #print("inserted first cell >>>")
+            #self.print_rota_with_pos(adjusted_to)
             
             self.insert_cell(adjusted_to, dev.code)
-            print("inserted second cell >>>")
+            #print("inserted second cell >>>")
             self.print_rota_with_pos(adjusted_to)
             
 
@@ -176,7 +176,17 @@ class Person:
         self.name = "WIP" # TODO get from dict
         self.code = code
     def is_mlb_block(self):
-        return self.code.startswith("g")
+        return self.code.startswith("G")
+    
+    def has_experience(self):
+        #ends with x
+        return self.code.endswith("x")
+    
+    def get_boss_code(self):
+        return self.code[2]
+    
+    def is_same_boss(self, other):
+        return self.get_boss_code() == other.get_boss_code() # TODO consider same boss as mlb block
          
 
 def main():
@@ -198,23 +208,9 @@ def main():
     s = RotationSchedule()
 
     #          0 , 1 , 2 , 3 , 4  , 5  , 6 , 7
-    s.rota = ["a","b","c","d","g1","g1","j","h"]
+    s.rota = ["G_00", "64K65_", "50E51_", "67B68_", "58K59x", "55F56_", "66H67_", "30D31_", "33E34_", "36F37x", "38G39x", "48B49_", "60I61_", "41E42x", "46H47_", "56F57x", "53G54_", "37D38x", "49E50_", "52C53x", "59D60_", "65F66_", "54C55_", "57A58x", "32I33_", "23H24x", "43F44x", "68B69_", "34I35_", "47D48_", "13B14_", "12G13_", "29F30x", "04E5_", "03D4_", "G_01", "06C7_", "08F9_", "28E29_", "02C3_", "35G36_", "19D20_", "11A12x", "09C10_", "10D11_", "18H19_", "21F22_", "14A15_", "16G17_", "01B2_", "17F18_", "05E6_", "00A1_", "G_00", "20B21_", "08F9_", "18H19_", "05E6_", "37D38x", "17F18_"]
 
-    print(s.fitness())
-
-    print("\n\nstarting position")
-    s.pretty_print()
-    s.move_block(0, 2 )
-    print("\n\nafter move in r1")
-    s.pretty_print()
-
-    s.move_block(4, 6 )
-    print("\n\nafter move in r2")
-    s.pretty_print()
-
-    s.move_block(4, 7 )
-    print("\n\nafter other move in r2")
-    s.pretty_print()
+   
 
     ## repeating N same operation
     ## get random position to start and another random position to move
