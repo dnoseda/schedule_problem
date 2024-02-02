@@ -38,6 +38,14 @@ class RotationSchedule:
                 Person(self.get_rota2_pos(i))):
                 ret += 1
         return ret
+
+    def rule_experience(self):
+        ret = 0
+        for i in range(self.get_half_point()-1):
+            if not Person(self.get_rota1_pos(i)).has_experience() and not Person(self.get_rota2_pos(i)).has_experience():
+                ret += 1
+
+        return ret
     
     def fitness(self):
         fns ={
@@ -55,6 +63,12 @@ class RotationSchedule:
                 "desc":"check if there are no two people with the same boss in the same rota",
                 "weight": 1,
                 "func": lambda: self.rule_same_overlaping_bosses()
+            },
+            "check_experience":{
+                "desc":"check if there are no two people without experience in the same rota",
+                "weight": 1,
+                "func": lambda: self.rule_experience()
+            
             }
         }
         f = 0
