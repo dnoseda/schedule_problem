@@ -1,22 +1,68 @@
 import random
+import logging
+import sys
 
 class RotationSchedule:
     def __init__(self):
+        self.debug = False
         self.rota = []    
    
+    def rule_only_mlb_in_rota2(self):
+        ret = 0
+        for i in range(self.get_half_point()):
+            if Person(self.get_rota1_pos(i)).is_mlb_block():
+                ret += 1
+        return ret
+    
+    def rule_adjacent_bosses(self):
+        ret = 0
+        for i in range(self.get_half_point()-1):
+            if Person(self.get_rota1_pos(i)).is_same_boss(
+                Person(self.get_rota1_pos(i+1))):
+                ret += 1
+            if Person(self.get_rota2_pos(i)).is_same_boss(
+                Person(self.get_rota2_pos(i+1))):
+                ret += 1
+            if Person(self.get_rota1_pos(i)).is_same_boss(
+                Person(self.get_rota2_pos(i+1))):
+                ret += 1
+            if Person(self.get_rota2_pos(i)).is_same_boss(
+                Person(self.get_rota1_pos(i+1))):
+                ret += 1
+        return ret
+    
+    def rule_same_overlaping_bosses(self):
+        ret = 0
+        for i in range(self.get_half_point()-1):
+            if Person(self.get_rota1_pos(i)).is_same_boss(
+                Person(self.get_rota2_pos(i))):
+                ret += 1
+        return ret
     
     def fitness(self):
         fns ={
-            "check_mlb_groups": {
-                "desc":"check if all mlb groups are present in the RotationSchedule",
+            "check_mlb_groups_rota2": {
+                "desc":"Only mlb groups can be in rota2",
                 "weight": 1,
-                "func": lambda: all(not s.startswith("g") for s in self.get_rota1()) and any(s.startswith("g") for s in self.get_rota2())
+                "func": lambda: self.rule_only_mlb_in_rota2()
             },
+            "check_same_adjacent_bosses":{
+                "desc":"check if there are no two people with the same boss in the same rota",
+                "weight": 1,
+                "func": lambda: self.rule_adjacent_bosses()
+            },
+            "check_same_overlaping_bosses":{
+                "desc":"check if there are no two people with the same boss in the same rota",
+                "weight": 1,
+                "func": lambda: self.rule_same_overlaping_bosses()
+            }
         }
         f = 0
         for k,v in fns.items():
-            if not v["func"]():
-                f += v["weight"]
+            ret = v["func"]()
+            logging.debug(f"Running {k} {v['desc']}, ret {ret}")
+            if ret > 0:
+                f += v["weight"]*ret
         return f
     
     def get_half_point(self):
@@ -39,14 +85,15 @@ class RotationSchedule:
         return self.get_rota1()[pos % len(self.get_rota1())]
     
     def pretty_print(self):
-        print("Rota 1\t\tRota 2")
-        print("-------\t\t-------")
-        for i in range(self.get_half_point()): # TODO: half point should consider max
-            
-            rota1_person = Person(self.get_rota1_pos(i))
-            rota2_person = Person(self.get_rota2_pos(self.get_half_point()+i))
+        if self.debug:
+            logging.info("Rota 1\t\tRota 2")
+            logging.info("-------\t\t-------")
+            for i in range(self.get_half_point()): # TODO: half point should consider max
+                
+                rota1_person = Person(self.get_rota1_pos(i))
+                rota2_person = Person(self.get_rota2_pos(self.get_half_point()+i))
 
-            print(f"{rota1_person.code}\t{rota1_person.name}\t{rota2_person.code}\t{rota2_person.name}")
+                logging.info(f"{rota1_person.code}\t{rota1_person.name}\t{rota2_person.code}\t{rota2_person.name}")
 
     
     def get_code_pos(self, pos):
@@ -151,11 +198,11 @@ class RotationSchedule:
         else:
             dev_to = Person(self.get_code_pos(to))
             if dev_to.is_mlb_block(): # dev
-                print("Err nop mlb and not rota2")
+                logging.error("Err nop mlb and not rota2")
                 return False # TODO consider limits and scenarios
             
             else: # simpliest scenario
-                print("swapping")
+                logging.debug("swapping")
                 self.rota[to ], self.rota[from_] = self.rota[from_], self.rota[to] # swap
             
         
@@ -208,7 +255,8 @@ def main():
     s = RotationSchedule()
 
     #          0 , 1 , 2 , 3 , 4  , 5  , 6 , 7
-    s.rota = ["G_00", "64K65_", "50E51_", "67B68_", "58K59x", "55F56_", "66H67_", "30D31_", "33E34_", "36F37x", "38G39x", "48B49_", "60I61_", "41E42x", "46H47_", "56F57x", "53G54_", "37D38x", "49E50_", "52C53x", "59D60_", "65F66_", "54C55_", "57A58x", "32I33_", "23H24x", "43F44x", "68B69_", "34I35_", "47D48_", "13B14_", "12G13_", "29F30x", "04E5_", "03D4_", "G_01", "06C7_", "08F9_", "28E29_", "02C3_", "35G36_", "19D20_", "11A12x", "09C10_", "10D11_", "18H19_", "21F22_", "14A15_", "16G17_", "01B2_", "17F18_", "05E6_", "00A1_", "G_00", "20B21_", "08F9_", "18H19_", "05E6_", "37D38x", "17F18_"]
+    # s.rota = ["G_00", "64K65_", "50E51_", "67B68_", "58K59x", "55F56_", "66H67_", "30D31_", "33E34_", "36F37x", "38G39x", "48B49_", "60I61_", "41E42x", "46H47_", "56F57x", "53G54_", "37D38x", "49E50_", "52C53x", "59D60_", "65F66_", "54C55_", "57A58x", "32I33_", "23H24x", "43F44x", "68B69_", "34I35_", "47D48_", "13B14_", "12G13_", "29F30x", "04E5_", "03D4_", "G_01", "06C7_", "08F9_", "28E29_", "02C3_", "35G36_", "19D20_", "11A12x", "09C10_", "10D11_", "18H19_", "21F22_", "14A15_", "16G17_", "01B2_", "17F18_", "05E6_", "00A1_", "G_00", "20B21_", "08F9_", "18H19_", "05E6_", "37D38x", "17F18_"]
+    s.rota = ["01A", "02A","03A", "01B","02B", "01C", "02C", "03C", "01D", "02D", "03D", "01E", "02E", "03E","G1A","G2A","G1B","G2B"]
 
    
 
@@ -217,26 +265,47 @@ def main():
     ## move block and check if fitness improves
 
     max_repeat = 100
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+    logging.info(f"max_repeat: {max_repeat}")
 
     for i in range(max_repeat):
         random_position = random.randint(0, len(s.rota) - 1)
-        print(random_position)
+        logging.info(random_position)
         for from_pos in range(len(s.rota)):
             for to_pos in range(len(s.rota)):
+                logging.info("{} -> {}: current fitness {}".format(from_pos, to_pos, s.fitness()))
                 to_pos_with_offset = to_pos + random_position
                 before_fitness = s.fitness()
                 s.stash()
                 if s.move_block(from_pos, to_pos_with_offset):
-                    print("\n\nafter move in r2")
+                    logging.debug("after move in r2")
                     s.pretty_print()
-                    if s.fitness() < before_fitness:
+                    if  before_fitness < s.fitness():
                         s.restore()
                     else:
                         s.commit()
-                    print(s.fitness())
+                    logging.debug(s.fitness())
                 else:
-                    print("invalid move NOOP")
+                    logging.debug("invalid move NOOP")
                     continue
+    
+    s.debug=True
+    s.pretty_print()
+    print("rota {}".format(",".join(s.rota)))
 
 if __name__ == "__main__":
-    main()
+    print(f"Called with ${sys.argv}")
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "-f":
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+        s = RotationSchedule()
+        # get rota from argument -R:"
+        if len(sys.argv) > 2 and sys.argv[2].startswith("-R:"):
+           s.rota = sys.argv[2][3:].split(",")
+           
+        s.debug=True
+        s.pretty_print()
+        logging.debug(f"Fitness {s.fitness()}")
+    else:
+        main()
