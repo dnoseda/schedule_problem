@@ -26,3 +26,7 @@ Rota 2 -> ['H2', 'D2', 'C5', 'H4x', 'E1', 'A2', 'F6', 'G2x', 'F5', 'G1', 'F1', '
 
 ```
 
+# Can be called with arguments to check fitness function
+```
+python3 replace_mlb.py -f -R:01C,03E,02D,02A,01B,02E,01D,03C,03A,03D,01A,02B,01E,02C,G1A,G2A,G1B,G2B
+```
