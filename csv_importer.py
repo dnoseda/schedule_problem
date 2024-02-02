@@ -1,5 +1,8 @@
 import csv
 
+def get_boss(code):
+    return code[2]
+
 def create_people_db(people_file, last_month_file):
     people_dict ={}
     devs = []

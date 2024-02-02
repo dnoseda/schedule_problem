@@ -50,22 +50,22 @@ class RotationSchedule:
         fns ={
             "check_mlb_groups_rota2": {
                 "desc":"Only mlb groups can be in rota2",
-                "weight": 1,
+                "weight": 5,
                 "func": lambda: self.rule_only_mlb_in_rota2()
             },
             "check_same_adjacent_bosses":{
                 "desc":"check if there are no two people with the same boss in the same rota",
-                "weight": 1,
+                "weight": 4,
                 "func": lambda: self.rule_adjacent_bosses()
             },
             "check_same_overlaping_bosses":{
                 "desc":"check if there are no two people with the same boss in the same rota",
-                "weight": 1,
+                "weight": 4,
                 "func": lambda: self.rule_same_overlaping_bosses()
             },
             "check_experience":{
                 "desc":"check if there are no two people without experience in the same rota",
-                "weight": 1,
+                "weight": 6,
                 "func": lambda: self.rule_experience()
             
             }
