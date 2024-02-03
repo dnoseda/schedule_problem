@@ -170,7 +170,25 @@ class RotationSchedule:
             dev_to = Person(self.get_code_pos(to))
             if dev_to.is_mlb_block():
                 #print("this should be 2 removes and identify first and second pos")
-                return False #TODO FIXME this should be 2 removes and identify first and second pos
+                # detect first and second block of pos to
+                to_second_cell_pos = to+1
+                if self.get_code_pos(to_second_cell_pos) != dev_to.code:
+                    logging.info("Err can't move block if second cell is not the same as the first")
+                    return False
+                self.remove_cell(first_cell_pos)
+                self.remove_cell(first_cell_pos)
+                
+                adjusted_to = to - 2
+                
+                self.remove_cell(adjusted_to)
+                self.remove_cell(adjusted_to)
+
+                self.insert_cell(first_cell_pos, dev_to.code)
+                self.insert_cell(first_cell_pos, dev_to.code) # insert second block
+                adjusted_to = adjusted_to + 2
+                self.insert_cell(adjusted_to, dev.code)
+                self.insert_cell(adjusted_to, dev.code) # insert second block
+                return True
 
             ## TODO moind moving block that not turn into rota1
             ## have to do all with shift TODO mind no go more than half point
@@ -189,7 +207,7 @@ class RotationSchedule:
             self.remove_cell(first_cell_pos)
             #print("removed second cell >>>")
             #self.print_rota_with_pos(first_cell_pos)
-            adjusted_to = to - 2            
+            adjusted_to = to - 2
             #print("adjusted", adjusted_to)
             #self.print_rota_with_pos(adjusted_to)
             
@@ -356,20 +374,27 @@ class TestRotationSchedule(unittest.TestCase):
         rs.pretty_print()
         self.assertEqual(rs.rota, expected_rota)
     
-    def test_move_block_single_to_single(self):
+    def test_move_single_to_single(self):
         self._run_test(
             ['01A','02A','03A'],
             ['G_01A','G_01A','01B'],
             0,2,
             ['03A','02A','01A','G_01A','G_01A','01B'])
     
-    def test_move_block_single_to_mlb(self):
-        
+    def test_move_block_to_single(self):        
         self._run_test(
             ['01A','02A','03A'],
             ['G_01A','G_01A','01B'],
             3,5,
             ['01A','02A','03A','01B','G_01A','G_01A'])        
+    
+    def test_move_block_to_block(self):
+        self._run_test(
+            ['01A','02A','03A','04A','05A','06A'],
+            ['G_01A','G_01A','01B','G_02A','G_02A','02B'],
+            6,9,
+            ['01A','02A','03A','04A','05A','06A','G_02A','G_02A','01B','G_01A','G_01A','02B'],
+        )
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
