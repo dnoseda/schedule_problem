@@ -178,7 +178,9 @@ class RotationSchedule:
                 self.remove_cell(first_cell_pos)
                 self.remove_cell(first_cell_pos)
                 
-                adjusted_to = to - 2
+                adjusted_to = to - 2 # FIXME this is is true onli if to > from_
+                
+                # FIXME corner cases with adjusted < 0
                 
                 self.remove_cell(adjusted_to)
                 self.remove_cell(adjusted_to)
@@ -241,8 +243,16 @@ class RotationSchedule:
         else:
             dev_to = Person(self.get_code_pos(to))
             if dev_to.is_mlb_block(): # dev
-                logging.error("Err nop mlb and not rota2")
-                return False # TODO consider limits and scenarios
+                # detect first cell of the dev_to block
+                dev_to_first_cel = to
+                if self.get_code_pos(dev_to_first_cel+1) != dev_to.code:
+                    if self.get_code_pos(dev_to_first_cel-1) != dev_to.code:
+                        raise Exception("Err can't move block if second cell is not the same as the first")
+                    dev_to_first_cel = to-1 #FIXME to can be <0
+                
+                return self.move_block(dev_to_first_cel, from_)
+            
+                
             
             else: # simpliest scenario
                 logging.debug("swapping")
@@ -251,6 +261,15 @@ class RotationSchedule:
         if len(set(self.rota)) != len(set(original_rota)):
                 logging.error(f"Err nop mlb and not rota2, rollback")
                 self.debug=True
+                logging.error("Rota After:")
+                logging.error("From:")
+                self.print_rota_with_pos(from_)
+                logging.error("To:")
+                self.print_rota_with_pos(to)
+                
+                self.rota = original_rota
+
+                logging.error("Rota Before:")
                 logging.error("From:")
                 self.print_rota_with_pos(from_)
                 logging.error("To:")
@@ -380,6 +399,25 @@ class TestRotationSchedule(unittest.TestCase):
             ['G_01A','G_01A','01B'],
             0,2,
             ['03A','02A','01A','G_01A','G_01A','01B'])
+    
+    def test_move_single_to_block_first_cell(self):
+        self._run_test(
+            ['01A','02A','03A'],
+            ['01B','G_01A','G_01A'],
+            3,4,
+            ['01A','02A','03A'] +
+            ['G_01A','G_01A','01B']
+        )
+    
+    def test_move_single_to_block_second_cell(self):
+        self._run_test(
+            ['01A','02A','03A'],
+            ['01B','G_01A','G_01A'],
+            3,5,
+            ['01A','02A','03A'] +
+            ['G_01A','G_01A','01B']
+        )
+
     
     def test_move_block_to_single(self):        
         self._run_test(
