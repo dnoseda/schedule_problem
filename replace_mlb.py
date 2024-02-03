@@ -32,12 +32,6 @@ def execute_algorithm(s, max_iterations):
                 else:
                     logging.debug("invalid move NOOP")
                     continue
-    
-    s.debug=True
-    s.pretty_print()
-    print("rota {}".format(",".join(s.rota)))
-
-
 
 def main():
     # read file of people from csv
@@ -59,6 +53,7 @@ def main():
 
     s = RotationSchedule()
     s.rota = people_db["devs"]
+    # TODO set people_db to RotationSchedule
 
     #          0 , 1 , 2 , 3 , 4  , 5  , 6 , 7
     # s.rota = ["G_00", "64K65_", "50E51_", "67B68_", "58K59x", "55F56_", "66H67_", "30D31_", "33E34_", "36F37x", "38G39x", "48B49_", "60I61_", "41E42x", "46H47_", "56F57x", "53G54_", "37D38x", "49E50_", "52C53x", "59D60_", "65F66_", "54C55_", "57A58x", "32I33_", "23H24x", "43F44x", "68B69_", "34I35_", "47D48_", "13B14_", "12G13_", "29F30x", "04E5_", "03D4_", "G_01", "06C7_", "08F9_", "28E29_", "02C3_", "35G36_", "19D20_", "11A12x", "09C10_", "10D11_", "18H19_", "21F22_", "14A15_", "16G17_", "01B2_", "17F18_", "05E6_", "00A1_", "G_00", "20B21_", "08F9_", "18H19_", "05E6_", "37D38x", "17F18_"]
@@ -71,6 +66,12 @@ def main():
     ## move block and check if fitness improves
 
     execute_algorithm(s, 1000)
+
+    s.debug=True
+    s.pretty_print()
+    print("rota {}".format(",".join(s.rota)))
+    # TODO print rota with proper format
+    
 
 if __name__ == "__main__":
     print(f"Called with ${sys.argv}")

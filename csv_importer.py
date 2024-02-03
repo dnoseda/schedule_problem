@@ -98,16 +98,14 @@ def create_people_db(people_file, last_month_file):
     print(mlb_group_lead )
 
 
-
-    # add all keys from mlb_group_lead to devs at the end
-    devs.extend(list(mlb_group_lead.keys()))
-
-
     # delete repeated from devs
     devs = list(dict.fromkeys(devs))
 
-    # add again groups keys to set groups by pairs
-    devs.extend(list(mlb_group_lead.keys()))
+    # add all keys from mlb_group_lead to devs at the end
+    for mlb_group_dev in list(mlb_group_lead.keys()):
+        devs.append(mlb_group_dev)
+        devs.append(mlb_group_dev) # add twice to make rotation blocks of two weeks
+    
 
     return {
         "devs": devs,

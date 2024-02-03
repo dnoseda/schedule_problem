@@ -66,9 +66,8 @@ class RotationSchedule:
             "check_experience":{
                 "desc":"check if there are no two people without experience in the same rota",
                 "weight": 6,
-                "func": lambda: self.rule_experience()
-            
-            }
+                "func": lambda: self.rule_experience()            
+            },            
         }
         f = 0
         for k,v in fns.items():
@@ -159,6 +158,7 @@ class RotationSchedule:
                 #print("this should be 2 removes and identify first and second pos")
                 return False #TODO FIXME this should be 2 removes and identify first and second pos
 
+            ## TODO moind moving block that not turn into rota1
             ## have to do all with shift TODO mind no go more than half point
             # shift should do first remove, then insert
 
