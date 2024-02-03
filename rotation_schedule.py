@@ -336,12 +336,28 @@ import unittest
 from unittest.mock import Mock
 
 class TestRotationSchedule(unittest.TestCase):
-    def test_move_block(self):
+    def test_move_block_single_to_single(self):
         rs = RotationSchedule()
         rs.rota = ['01A','02A','03A','G_01A','G_02A','01B']
         mock_people_dict = Mock(spec=PeopleDict)
         # Mock the get_dev_name method
-        mock_people_dict.get_dev_name.return_value = "Mocked Dev Name"
+        mock_people_dict.get_dev_name.return_value = "wip"
+
+        rs.use_dict(mock_people_dict)
+        rs.debug = True
+        rs.print_rota_with_pos(0,1)
+        print("Before move block")
+        rs.pretty_print()
+        self.assertTrue(rs.move_block(0, 1))
+        print("After move block")
+        rs.pretty_print()
+    
+    def test_move_block_single_to_mlb(self):
+        rs = RotationSchedule()
+        rs.rota = ['01A','02A','03A','G_01A','G_02A','01B']
+        mock_people_dict = Mock(spec=PeopleDict)
+        # Mock the get_dev_name method
+        mock_people_dict.get_dev_name.return_value = "wip"
 
         rs.use_dict(mock_people_dict)
         rs.debug = True
