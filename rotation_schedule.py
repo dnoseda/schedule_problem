@@ -120,12 +120,18 @@ class RotationSchedule:
     def remove_cell(self, pos):
         self.rota.pop(pos)
 
-    def print_rota_with_pos(self,pos):
+    def print_rota_with_pos(self,*args):
         if not self.debug:
             return
 
         for i in range(len(self.rota)):
-            pos_marker = "*" if i == pos else ""
+            pos_marker = ""
+            
+            for idx,j in enumerate(args):
+                if i == j:
+                    pos_marker = "<"*(idx+1)
+                    break
+            
             logging.info(f"{i}\t{self.rota[i]} {pos_marker}")
     
     def move_block(self, from_, to):
@@ -213,17 +219,7 @@ class RotationSchedule:
             #print("inserted second cell >>>")
             self.print_rota_with_pos(adjusted_to)
             
-            if len(set(self.rota)) != len(set(original_rota)):
-                logging.error(f"Err nop mlb and not rota2, rollback")
-                self.debug=True
-                logging.error("From:")
-                self.print_rota_with_pos(from_)
-                logging.error("To:")
-                self.print_rota_with_pos(to)
-                
-                raise Exception(f"Err nop mlb and not rota2, rollback {from_} {to} {dev.code} {dev_to.code}")
-
-            
+                      
         else:
             dev_to = Person(self.get_code_pos(to))
             if dev_to.is_mlb_block(): # dev
@@ -233,7 +229,16 @@ class RotationSchedule:
             else: # simpliest scenario
                 logging.debug("swapping")
                 self.rota[to ], self.rota[from_] = self.rota[from_], self.rota[to] # swap
-            
+
+        if len(set(self.rota)) != len(set(original_rota)):
+                logging.error(f"Err nop mlb and not rota2, rollback")
+                self.debug=True
+                logging.error("From:")
+                self.print_rota_with_pos(from_)
+                logging.error("To:")
+                self.print_rota_with_pos(to)
+                
+                raise Exception(f"Err nop mlb and not rota2, rollback {from_} {to} {dev.code} {dev_to.code}") 
         
 
         # if mlb group can only move within rota2
@@ -249,6 +254,9 @@ class RotationSchedule:
         self.stash_copy = None
     def commit(self):
         self.stash_copy = None
+
+
+
 
 class Person:
     people_dict = None
@@ -323,3 +331,28 @@ class PeopleDict:
         logging.info("-------")
         for k, v in self.dev_by_name.items():
             logging.info(f"{k}\t{v}")
+
+import unittest
+from unittest.mock import Mock
+
+class TestRotationSchedule(unittest.TestCase):
+    def test_move_block(self):
+        rs = RotationSchedule()
+        rs.rota = ['01A','02A','03A','G_01A','G_02A','01B']
+        mock_people_dict = Mock(spec=PeopleDict)
+        # Mock the get_dev_name method
+        mock_people_dict.get_dev_name.return_value = "Mocked Dev Name"
+
+        rs.use_dict(mock_people_dict)
+        rs.debug = True
+        rs.print_rota_with_pos(3,5)
+        print("Before move block")
+        rs.pretty_print()
+        self.assertTrue(rs.move_block(3, 5))
+        print("After move block")
+        rs.pretty_print()
+        self.assertEqual(rs.rota, ['01A','02A','03A','01B','G_01A','G_02A'])
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    unittest.main()
