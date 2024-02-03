@@ -262,18 +262,13 @@ class RotationSchedule:
                 logging.error(f"Err nop mlb and not rota2, rollback")
                 self.debug=True
                 logging.error("Rota After:")
-                logging.error("From:")
-                self.print_rota_with_pos(from_)
-                logging.error("To:")
-                self.print_rota_with_pos(to)
+                
+                self.print_rota_with_pos(from_, to)
                 
                 self.rota = original_rota
 
                 logging.error("Rota Before:")
-                logging.error("From:")
-                self.print_rota_with_pos(from_)
-                logging.error("To:")
-                self.print_rota_with_pos(to)
+                self.print_rota_with_pos(from_,to)
                 
                 raise Exception(f"Err nop mlb and not rota2, rollback {from_} {to} {dev.code} {dev_to.code}") 
         
