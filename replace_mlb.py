@@ -7,17 +7,17 @@ from csv_importer import create_people_db
 
 
 def execute_algorithm(s, max_iterations):
-    max_repeat = 10
+    
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-    logging.info(f"max_repeat: {max_repeat}")
+    logging.info(f"max_iterations: {max_iterations}")
 
-    for i in range(max_repeat):
+    for i in range(max_iterations):
         random_position = random.randint(0, len(s.rota) - 1)
         logging.info(random_position)
         for from_pos in range(len(s.rota)):
             for to_pos in range(len(s.rota)):
-                logging.info(f"[{i}] {from_pos} -> {to_pos}: current fitness {s.fitness()}")
+                logging.info(f"[{i:02d}] {from_pos:02d} -> {to_pos:02d}: current fitness {s.fitness():03d}")
                 to_pos_with_offset = to_pos + random_position
                 before_fitness = s.fitness()
                 s.stash()
@@ -49,10 +49,11 @@ def main():
             MLB blocks can only be moved within rota2
     """
 
-    people_db = create_people_db("people.csv", "last_month.csv")
+    peopleDict = create_people_db("people.csv", "last_month.csv")
 
     s = RotationSchedule()
-    s.rota = people_db["devs"]
+    s.rota = peopleDict.devs
+    s.use_dict(peopleDict)
     # TODO set people_db to RotationSchedule
 
     #          0 , 1 , 2 , 3 , 4  , 5  , 6 , 7
@@ -65,14 +66,18 @@ def main():
     ## get random position to start and another random position to move
     ## move block and check if fitness improves
 
-    execute_algorithm(s, 1000)
+    execute_algorithm(s, 2)
 
     s.debug=True
     s.pretty_print()
     print("rota {}".format(",".join(s.rota)))
     # TODO print rota with proper format
-    print( people_db)
+    peopleDict.pretty_print()
     
+    print(f"original devs: {peopleDict.devs}")
+
+    print(f"original len devs: {len(peopleDict.devs)} len rota: {len(s.rota)} len rota1 {len(s.get_rota1())} len rota2 {len(s.get_rota2())} half point {s.get_half_point()}")
+    print(f"len unique devs: {len(set(peopleDict.devs))} len unique rota: {len(set(s.rota))}")
 
 if __name__ == "__main__":
     print(f"Called with ${sys.argv}")

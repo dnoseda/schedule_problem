@@ -1,4 +1,5 @@
 import csv
+from rotation_schedule import PeopleDict
 
 def get_boss(code):
     return code[2]
@@ -107,13 +108,13 @@ def create_people_db(people_file, last_month_file):
         devs.append(mlb_group_dev) # add twice to make rotation blocks of two weeks
     
 
-    return {
-        "devs": devs,
-        "dev_by_name": dev_by_name,
-        "people_dict": people_dict,
-        "mlb_devs_groups": mlb_devs_groups,
-        "mlb_group_lead": mlb_group_lead,
-    }
+    return PeopleDict(
+        devs,
+        dev_by_name,
+        people_dict,
+        mlb_devs_groups,
+        mlb_group_lead,
+    )
 
 if __name__ == "__main__":
     create_people_db("people.csv", "last_month.csv")

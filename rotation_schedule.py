@@ -4,7 +4,10 @@ import logging
 class RotationSchedule:
     def __init__(self):
         self.debug = False
-        self.rota = []    
+        self.rota = []
+
+    def use_dict(self, peopleDict):
+        Person.init_dict(peopleDict)       
    
     def rule_only_mlb_in_rota2(self):
         ret = 0
@@ -78,7 +81,7 @@ class RotationSchedule:
         return f
     
     def get_half_point(self):
-        return len(self.rota)//2
+        return max(len(self.get_rota1()), len(self.get_rota2()))
     
     def get_rota1(self):
         return self.rota[:len(self.rota)//2]
@@ -103,7 +106,7 @@ class RotationSchedule:
             for i in range(self.get_half_point()): # TODO: half point should consider max
                 
                 rota1_person = Person(self.get_rota1_pos(i))
-                rota2_person = Person(self.get_rota2_pos(self.get_half_point()+i))
+                rota2_person = Person(self.get_rota2_pos(i))
 
                 logging.info(f"{rota1_person.code}\t{rota1_person.name}\t{rota2_person.code}\t{rota2_person.name}")
 
@@ -118,9 +121,12 @@ class RotationSchedule:
         self.rota.pop(pos)
 
     def print_rota_with_pos(self,pos):
+        if not self.debug:
+            return
+
         for i in range(len(self.rota)):
             pos_marker = "*" if i == pos else ""
-            print(f"{i}\t{self.rota[i]}", pos_marker )
+            logging.info(f"{i}\t{self.rota[i]} {pos_marker}")
     
     def move_block(self, from_, to):
         """
@@ -138,6 +144,8 @@ class RotationSchedule:
 
 
         dev = Person(self.get_code_pos(from_))
+
+        original_rota = self.rota.copy()
 
         # mlb block should only move in rota2
         if dev.is_mlb_block():
@@ -205,7 +213,15 @@ class RotationSchedule:
             #print("inserted second cell >>>")
             self.print_rota_with_pos(adjusted_to)
             
-
+            if len(set(self.rota)) != len(set(original_rota)):
+                logging.error(f"Err nop mlb and not rota2, rollback")
+                self.debug=True
+                logging.error("From:")
+                self.print_rota_with_pos(from_)
+                logging.error("To:")
+                self.print_rota_with_pos(to)
+                
+                raise Exception(f"Err nop mlb and not rota2, rollback {from_} {to} {dev.code} {dev_to.code}")
 
             
         else:
@@ -223,24 +239,35 @@ class RotationSchedule:
         # if mlb group can only move within rota2
         # mind the size of the block
         return True
+    
     def stash(self):
         self.stash_copy = self.rota.copy()
     def restore(self):
+        if self.stash_copy is None:
+            raise Exception("No stash to restore")
         self.rota = self.stash_copy.copy()
         self.stash_copy = None
     def commit(self):
         self.stash_copy = None
 
 class Person:
+    people_dict = None
+    @classmethod
+    def init_dict(cls, people_dict):
+        cls.people_dict = people_dict
+
     def __init__(self, code):
-        self.name = "WIP" # TODO get from dict
+        # exit if no dict
+        if not self.__class__.people_dict:
+            raise Exception("People dict not initialized")
+        self.name = self.__class__.people_dict.get_dev_name(code)
         self.code = code
+
     def is_mlb_block(self):
         return self.code.startswith("G")
     
     def has_experience(self):
-        #ends with x
-        return self.code.endswith("x")
+        return not self.code.endswith("x")
     
     def get_boss_code(self):
         return self.code[2]
@@ -248,3 +275,51 @@ class Person:
     def is_same_boss(self, other):
         return self.get_boss_code() == other.get_boss_code() # TODO consider same boss as mlb block
          
+
+class PeopleDict:
+    def __init__(self, devs, dev_by_name, people_dict, mlb_devs_groups, mlb_group_lead):         
+        self.devs= devs
+        self.dev_by_name= dev_by_name
+        self.people_dict= people_dict
+        self.mlb_devs_groups= mlb_devs_groups
+        self.mlb_group_lead= mlb_group_lead
+    
+    def is_mlb_block(self, code):
+        return code.startswith("G")
+    
+    def get_dev_name(self, code):
+        if self.is_mlb_block(code):         
+            
+            if not code in self.mlb_devs_groups.values():
+                raise Exception(f"MLB group {code} not found")
+            
+            ret = f"{code}: "
+            names = []
+            for k,v in self.mlb_devs_groups.items():
+                if v == code:
+                    names.append(self.people_dict[k]["name"])
+            ret += ", ".join(names)
+            return ret
+        else:
+            return self.people_dict[code]["name"]
+    
+    def pretty_print(self):
+        logging.info("Code\tName")
+        logging.info("-------\t-------")
+        for k, v in self.people_dict.items():
+            logging.info(f"{k}\t{v}")
+        
+        logging.info("MLB Groups")
+        logging.info("-------")
+        for k, v in self.mlb_devs_groups.items():
+            logging.info(f"{k}\t{v}")
+
+        logging.info("MLB Group Lead")
+        logging.info("-------")
+        for k, v in self.mlb_group_lead.items():
+            logging.info(f"{k}\t{v}")
+        
+        logging.info("People by name")
+        logging.info("-------")
+        for k, v in self.dev_by_name.items():
+            logging.info(f"{k}\t{v}")
