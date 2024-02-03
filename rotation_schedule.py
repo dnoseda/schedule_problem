@@ -338,7 +338,8 @@ from unittest.mock import Mock
 class TestRotationSchedule(unittest.TestCase):
     def test_move_block_single_to_single(self):
         rs = RotationSchedule()
-        rs.rota = ['01A','02A','03A','G_01A','G_02A','01B']
+        rs.rota =       ['01A','02A','03A']
+        rs.rota.extend(['G_01A','G_01A','01B'])
         mock_people_dict = Mock(spec=PeopleDict)
         # Mock the get_dev_name method
         mock_people_dict.get_dev_name.return_value = "wip"
@@ -354,7 +355,8 @@ class TestRotationSchedule(unittest.TestCase):
     
     def test_move_block_single_to_mlb(self):
         rs = RotationSchedule()
-        rs.rota = ['01A','02A','03A','G_01A','G_02A','01B']
+        rs.rota =       ['01A','02A','03A']
+        rs.rota.extend(['G_01A','G_01A','01B'])
         mock_people_dict = Mock(spec=PeopleDict)
         # Mock the get_dev_name method
         mock_people_dict.get_dev_name.return_value = "wip"
@@ -367,7 +369,7 @@ class TestRotationSchedule(unittest.TestCase):
         self.assertTrue(rs.move_block(3, 5))
         print("After move block")
         rs.pretty_print()
-        self.assertEqual(rs.rota, ['01A','02A','03A','01B','G_01A','G_02A'])
+        self.assertEqual(rs.rota, ['01A','02A','03A','01B','G_01A','G_01A'])
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
