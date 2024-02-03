@@ -71,6 +71,7 @@ def main():
     s.pretty_print()
     print("rota {}".format(",".join(s.rota)))
     # TODO print rota with proper format
+    print( people_db)
     
 
 if __name__ == "__main__":
