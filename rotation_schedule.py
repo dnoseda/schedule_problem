@@ -336,40 +336,40 @@ import unittest
 from unittest.mock import Mock
 
 class TestRotationSchedule(unittest.TestCase):
-    def test_move_block_single_to_single(self):
+    
+    
+    def _run_test(self, rota1, rota2, from_, to, expected_rota):
         rs = RotationSchedule()
-        rs.rota =       ['01A','02A','03A']
-        rs.rota.extend(['G_01A','G_01A','01B'])
+        rs.rota = rota1 +rota2
+        
         mock_people_dict = Mock(spec=PeopleDict)
         # Mock the get_dev_name method
         mock_people_dict.get_dev_name.return_value = "wip"
 
         rs.use_dict(mock_people_dict)
         rs.debug = True
-        rs.print_rota_with_pos(0,1)
+        rs.print_rota_with_pos(from_,to)
         print("Before move block")
         rs.pretty_print()
-        self.assertTrue(rs.move_block(0, 1))
+        self.assertTrue(rs.move_block(from_, to))
         print("After move block")
         rs.pretty_print()
+        self.assertEqual(rs.rota, expected_rota)
+    
+    def test_move_block_single_to_single(self):
+        self._run_test(
+            ['01A','02A','03A'],
+            ['G_01A','G_01A','01B'],
+            0,2,
+            ['03A','02A','01A','G_01A','G_01A','01B'])
     
     def test_move_block_single_to_mlb(self):
-        rs = RotationSchedule()
-        rs.rota =       ['01A','02A','03A']
-        rs.rota.extend(['G_01A','G_01A','01B'])
-        mock_people_dict = Mock(spec=PeopleDict)
-        # Mock the get_dev_name method
-        mock_people_dict.get_dev_name.return_value = "wip"
-
-        rs.use_dict(mock_people_dict)
-        rs.debug = True
-        rs.print_rota_with_pos(3,5)
-        print("Before move block")
-        rs.pretty_print()
-        self.assertTrue(rs.move_block(3, 5))
-        print("After move block")
-        rs.pretty_print()
-        self.assertEqual(rs.rota, ['01A','02A','03A','01B','G_01A','G_01A'])
+        
+        self._run_test(
+            ['01A','02A','03A'],
+            ['G_01A','G_01A','01B'],
+            3,5,
+            ['01A','02A','03A','01B','G_01A','G_01A'])        
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
