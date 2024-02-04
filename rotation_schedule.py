@@ -133,11 +133,91 @@ class RotationSchedule:
                     break
             
             logging.info(f"{i}\t{self.rota[i]} {pos_marker}")
+
+    def move_block2(self, from_,to):
+        """
+        but with this consideration:
+        - detect if from or to are mlb blocks
+        - then detect first cell of the blocks
+        - then run if need 2 to 1 or 1 to 2 or 2 to 2 or 1 to 1 alwyas detecting first cell of the blocks
+        """
+
+        from_ = from_% len(self.rota)
+        to = to % len(self.rota)
+
+
+        if from_ == to:
+            #print("Err nop same pos")
+            return False    
+        
+        
+
+        
+        dev_from = Person(self.get_code_pos(from_))
+        dev_to = Person(self.get_code_pos(to))
+
+        dev_from_size = 1
+        dev_to_size = 1
+
+        if dev_from.is_mlb_block():            
+            is_rota2_from = from_  >= self.get_half_point()
+            if not is_rota2_from:
+                raise Exception("Err from MLB block in rota1")
+            dev_from_size = 2
+            from_=MLBBlock(from_, self.rota).get_first_cell_pos()
+
+        if dev_to.is_mlb_block():            
+            is_rota2_to = to >= self.get_half_point()
+            if not is_rota2_to:
+                raise Exception("Err to MLB block in rota1")
+            
+            dev_to_size = 2
+            from_=MLBBlock(to, self.rota).get_first_cell_pos()
+
+        
+
+        original_rota = self.rota.copy()
+
+    
+        # Extract the cell blocks to swap
+        forward_block = self.rota[from_:from_+dev_from_size]
+        backward_block = self.rota[to:to+dev_to_size]
+        
+        # Perform the swap
+        self.rota[from_:from_+dev_from_size] = backward_block
+        self.rota[to:to+dev_to_size] = forward_block
+
+        if len(set(self.rota)) != len(set(original_rota)):
+            logging.error(f"Err nop mlb and not rota2, rollback")
+            self.debug=True
+            logging.error("Rota After:")
+            
+            self.print_rota_with_pos(from_, to)
+            
+            self.rota = original_rota
+
+            logging.error("Rota Before:")
+            self.print_rota_with_pos(from_,to)
+            
+            raise Exception(f"Err nop mlb and not rota2, rollback {from_} {to} {dev.code} {dev_to.code}") 
+
+        
+        
+        return True
     
     def move_block(self, from_, to):
+        return self.move_block2(from_, to)
+        
         """
         Move the whole location. from_ and to are indexes of the rota
         Also use module to get positions
+        TODO
+        use this 
+
+
+To add a second length parameter for how many cells should be moved back from the destination position to the origin, we can modify the function accordingly. Here's the updated implementation:
+
+
         """
         #print("called with ", from_, to)
         from_ = from_% len(self.rota)
@@ -289,6 +369,22 @@ class RotationSchedule:
 
 
 
+class MLBBlock:
+    def __init__(self, mlb_cell,rota):
+        self.first_cell_pos = mlb_cell
+        self.second_cell_pos = mlb_cell+1
+        if self.second_cell_pos >= len(rota) or rota[self.first_cell_pos] != rota[self.second_cell_pos]:
+            self.first_cell_pos = mlb_cell-1
+            self.second_cell_pos = mlb_cell            
+        
+
+    def get_first_cell_pos(self):
+        return self.first_cell_pos
+
+    def get_second_cell_pos(self):
+        return self.second_cell_pos
+        # TODO implement methods to ask stuff about mlb block
+    
 
 class Person:
     people_dict = None
