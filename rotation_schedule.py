@@ -160,14 +160,16 @@ class RotationSchedule:
         if dev_from.is_mlb_block():            
             is_rota2_from = from_  >= self.get_half_point()
             if not is_rota2_from:
-                raise Exception("Err from MLB block in rota1")
+                logging.error(f"Err from MLB block in rota1, from_ {from_}, rota {self.rota}")
+                return False
             dev_from_size = 2
             from_=MLBBlock(from_, self.rota).get_first_cell_pos()
 
         if dev_to.is_mlb_block():            
             is_rota2_to = to >= self.get_half_point()
             if not is_rota2_to:
-                raise Exception("Err to MLB block in rota1")
+                logging.error(f"Err to MLB block in rota1, to {to}, rota {self.rota}")
+                return False
             
             dev_to_size = 2
             to=MLBBlock(to, self.rota).get_first_cell_pos()
@@ -189,12 +191,12 @@ class RotationSchedule:
         adjusted_to = to - dev_from_size + dev_to_size
         for i in range(dev_to_size):
             self.remove_cell(adjusted_to)
-            
+
         for i in range(dev_from_size):
             self.insert_cell(adjusted_to, dev_from.code)
 
         if len(set(self.rota)) != len(set(original_rota)) or len(self.rota) != len(original_rota):
-            logging.error(f"Err nop mlb and not rota2, rollback")
+            logging.error(f"Err len changed {len(set(self.rota))} {len(set(original_rota))} {len(self.rota)} {len(original_rota)}")
             self.debug=True
             logging.error("Rota After:")
             
@@ -205,7 +207,7 @@ class RotationSchedule:
             logging.error("Rota Before:")
             self.print_rota_with_pos(from_,to)
             
-            raise Exception(f"Err nop mlb and not rota2, rollback {from_} {to} {dev.code} {dev_to.code}") 
+            raise Exception(f"Err len changed {from_} {to} {dev_from.code} {dev_to.code}") #FIXME just report this with all parameters and rota state for new test cases, then perform rollback and return False 
 
         
         
