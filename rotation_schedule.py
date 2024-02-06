@@ -1,6 +1,7 @@
 import logging
 
 
+
 class RotationSchedule:
     def __init__(self):
         self.debug = False
@@ -9,14 +10,10 @@ class RotationSchedule:
     def use_dict(self, peopleDict):
         Person.init_dict(peopleDict)       
    
-    def rule_only_mlb_in_rota2(self):
-        ret = 0
-        for i in range(self.get_half_point()):
-            if Person(self.get_rota1_pos(i)).is_mlb_block():
-                ret += 1
-        return ret
+    
     
     def rule_adjacent_bosses(self):
+        #TODO check same bosses in mlb block
         ret = 0
         for i in range(self.get_half_point()-1):
             if Person(self.get_rota1_pos(i)).is_same_boss(
@@ -38,7 +35,7 @@ class RotationSchedule:
         for i in range(self.get_half_point()-1):
             if Person(self.get_rota1_pos(i)).is_same_boss(
                 Person(self.get_rota2_pos(i))):
-                ret += 1
+                ret += 1#TODO check same bosses in mlb block
         return ret
 
     def rule_experience(self):
@@ -49,13 +46,22 @@ class RotationSchedule:
 
         return ret
     
+    def rule_dev_last_month(self):
+        #iterate from half of half point to half point
+        ret = 0
+        from_pos = 0
+        to_pos = self.get_half_point()//2
+        #print(f"Checking from {from_pos} to {to_pos}")
+        for i in range(from_pos, to_pos):
+            #print(f"Checking {i} {self.get_rota1_pos(i)} {self.get_rota2_pos(i)}")
+            if Person(self.get_rota1_pos(i)).is_in_last_month():
+                ret += 1
+            if Person(self.get_rota2_pos(i)).is_in_last_month():
+                ret += 1
+        return ret
+    
     def fitness(self):
-        fns ={
-            "check_mlb_groups_rota2": {
-                "desc":"Only mlb groups can be in rota2",
-                "weight": 5,
-                "func": lambda: self.rule_only_mlb_in_rota2()
-            },
+        fns ={           
             "check_same_adjacent_bosses":{
                 "desc":"check if there are no two people with the same boss in the same rota",
                 "weight": 4,
@@ -70,7 +76,12 @@ class RotationSchedule:
                 "desc":"check if there are no two people without experience in the same rota",
                 "weight": 6,
                 "func": lambda: self.rule_experience()            
-            },            
+            },
+            "check_last_month":{
+                "desc":"check if there are no two people without experience in the same rota",
+                "weight": 10,
+                "func": lambda: self.rule_dev_last_month()              
+            }            
         }
         f = 0
         for k,v in fns.items():
@@ -134,7 +145,7 @@ class RotationSchedule:
             
             logging.info(f"{i}\t{self.rota[i]} {pos_marker}")
 
-    def move_block2(self, from_,to):
+    def move_block(self, from_,to):
         """
         but with this consideration:
         - detect if from or to are mlb blocks
@@ -157,20 +168,11 @@ class RotationSchedule:
         dev_from_size = 1
         dev_to_size = 1
 
-        if dev_from.is_mlb_block():            
-            is_rota2_from = from_  >= self.get_half_point()
-            if not is_rota2_from:
-                logging.error(f"Err from MLB block in rota1, from_ {from_}, rota {self.rota}")
-                return False
+        if dev_from.is_mlb_block():
             dev_from_size = 2
             from_=MLBBlock(from_, self.rota).get_first_cell_pos()
 
         if dev_to.is_mlb_block():            
-            is_rota2_to = to >= self.get_half_point()
-            if not is_rota2_to:
-                logging.error(f"Err to MLB block in rota1, to {to}, rota {self.rota}")
-                return False
-            
             dev_to_size = 2
             to=MLBBlock(to, self.rota).get_first_cell_pos()
 
@@ -183,7 +185,7 @@ class RotationSchedule:
 
         # TODO check not spliting mlb blocks between rotas
 
-        #FIXME: not check if mlb block is always in rota2, as positions can be swapped between rotas
+        
 
     
         # Extract the cell blocks to swap
@@ -225,157 +227,8 @@ class RotationSchedule:
         
         return True
     
-    def move_block(self, from_, to):
-        return self.move_block2(from_, to)
-        
-        """
-        Move the whole location. from_ and to are indexes of the rota
-        Also use module to get positions
-        TODO
-        use this 
 
-
-To add a second length parameter for how many cells should be moved back from the destination position to the origin, we can modify the function accordingly. Here's the updated implementation:
-
-
-        """
-        #print("called with ", from_, to)
-        from_ = from_% len(self.rota)
-        to = to % len(self.rota)
-        if from_ == to:
-            #print("Err nop same pos")
-            return False    
-        is_rota2_from = from_  >= self.get_half_point()
-        is_rota2_to = to >= self.get_half_point()
-
-
-        dev = Person(self.get_code_pos(from_))
-
-        original_rota = self.rota.copy()
-
-        # mlb block should only move in rota2
-        if dev.is_mlb_block():
-            if not(is_rota2_from and is_rota2_to):
-                #print("Err nop mlb and not rota2")
-                return False # NOOP
-            
-            # get first and second pos of the block
-            first_cell_pos = from_
-            second_cell_pos = from_+1
-            
-            if self.get_code_pos(second_cell_pos) != dev.code:
-                #print("Err NOOP can't move block if second cell is not the same as the first")
-                return False # NOOP can't move block if second cell is not the same as the first
-            
-            dev_to = Person(self.get_code_pos(to))
-            if dev_to.is_mlb_block():
-                #print("this should be 2 removes and identify first and second pos")
-                # detect first and second block of pos to
-                to_second_cell_pos = to+1
-                if self.get_code_pos(to_second_cell_pos) != dev_to.code:
-                    logging.info("Err can't move block if second cell is not the same as the first")
-                    return False
-                self.remove_cell(first_cell_pos)
-                self.remove_cell(first_cell_pos)
-                
-                adjusted_to = to - 2 # FIXME this is is true onli if to > from_
-                
-                # FIXME corner cases with adjusted < 0
-                
-                self.remove_cell(adjusted_to)
-                self.remove_cell(adjusted_to)
-
-                self.insert_cell(first_cell_pos, dev_to.code)
-                self.insert_cell(first_cell_pos, dev_to.code) # insert second block
-                adjusted_to = adjusted_to + 2
-                self.insert_cell(adjusted_to, dev.code)
-                self.insert_cell(adjusted_to, dev.code) # insert second block
-                return True
-
-            ## TODO moind moving block that not turn into rota1
-            ## have to do all with shift TODO mind no go more than half point
-            # shift should do first remove, then insert
-
-            #print("first_cell_pos")
-            #self.print_rota_with_pos(first_cell_pos)
-            #print("second_cell_pos")
-            #self.print_rota_with_pos(second_cell_pos)
-
-            # 1. remove first block
-            self.remove_cell(first_cell_pos)
-            #print("removed first cell >>>")
-            #self.print_rota_with_pos(first_cell_pos)
-
-            self.remove_cell(first_cell_pos)
-            #print("removed second cell >>>")
-            #self.print_rota_with_pos(first_cell_pos)
-            adjusted_to = to - 2
-            #print("adjusted", adjusted_to)
-            #self.print_rota_with_pos(adjusted_to)
-            
-            # 2. insert first block the same place
-            self.insert_cell(first_cell_pos, dev_to.code)
-            #print("inserted first cell >>>")
-            #self.print_rota_with_pos(adjusted_to)
-            adjusted_to = adjusted_to + 1
-            #print("after adjust")
-            #self.print_rota_with_pos(adjusted_to)
-
-            
-
-
-            # 3. remove second block
-            self.remove_cell(adjusted_to ) # TODO what if the removes change positions of to
-            #print("removed second cell >>>")
-            #self.print_rota_with_pos(adjusted_to)
-
-            # 4. insert second block the same place
-            # in reverse order given that insert is before index
-            self.insert_cell(adjusted_to, dev.code)
-            #print("inserted first cell >>>")
-            #self.print_rota_with_pos(adjusted_to)
-            
-            self.insert_cell(adjusted_to, dev.code)
-            #print("inserted second cell >>>")
-            self.print_rota_with_pos(adjusted_to)
-            
-                      
-        else:
-            dev_to = Person(self.get_code_pos(to))
-            if dev_to.is_mlb_block(): # dev
-                # detect first cell of the dev_to block
-                dev_to_first_cel = to
-                if self.get_code_pos(dev_to_first_cel+1) != dev_to.code:
-                    if self.get_code_pos(dev_to_first_cel-1) != dev_to.code:
-                        raise Exception("Err can't move block if second cell is not the same as the first")
-                    dev_to_first_cel = to-1 #FIXME to can be <0
-                
-                return self.move_block(dev_to_first_cel, from_)
-            
-                
-            
-            else: # simpliest scenario
-                logging.debug("swapping")
-                self.rota[to ], self.rota[from_] = self.rota[from_], self.rota[to] # swap
-
-        if len(set(self.rota)) != len(set(original_rota)):
-                logging.error(f"Err nop mlb and not rota2, rollback")
-                self.debug=True
-                logging.error("Rota After:")
-                
-                self.print_rota_with_pos(from_, to)
-                
-                self.rota = original_rota
-
-                logging.error("Rota Before:")
-                self.print_rota_with_pos(from_,to)
-                
-                raise Exception(f"Err nop mlb and not rota2, rollback {from_} {to} {dev.code} {dev_to.code}") 
-        
-
-        # if mlb group can only move within rota2
-        # mind the size of the block
-        return True
+       
     
     def stash(self):
         self.stash_copy = self.rota.copy()
@@ -386,6 +239,27 @@ To add a second length parameter for how many cells should be moved back from th
         self.stash_copy = None
     def commit(self):
         self.stash_copy = None
+
+    def print_schedule(self):
+        data = []
+        data.append([""    , ""   , "Rota1", ""     ,"",""    ,"Rota2"])
+        data.append(["Week","Code","Dev"   ,"leader","","Code","Dev","leader"])
+        for i in range(self.get_half_point()):
+            dev1,dev2 = Person(self.get_rota1_pos(i)), Person(self.get_rota2_pos(i))
+            data.append([
+                str(i+1),
+                dev1.code,
+                dev1.name + (" (LM)" if dev1.is_in_last_month() else "") + (" (X)" if not dev1.has_experience() else ""),
+                dev1.get_bosses_name(),
+                "",
+                dev2.code,
+                dev2.name + (" (LM)" if dev2.is_in_last_month() else "") + (" (X)" if not dev2.has_experience() else ""),
+                dev2.get_bosses_name()
+            ])
+        
+        for i in range(len(data)):
+            print("\t".join(data[i]))
+            
 
 
 
@@ -435,7 +309,7 @@ class Person:
         return self.code.startswith("G")
     
     def has_experience(self):
-        return not self.code.endswith("x")
+        return not self.code.endswith("x") and not self.is_mlb_block()
     
     def get_boss_code(self):
         return self.code[2]
@@ -445,21 +319,41 @@ class Person:
             return [self.get_boss_code()]
         
         return self.__class__.people_dict.mlb_group_lead[self.code]
+    def get_leader_by_code(self, code):
+        # iterate leader_codes and find the code by value
+        for k,v in self.__class__.people_dict.leader_codes.items():
+            if v == code:
+                return k
+    
+    def get_bosses_name(self):
+        return ", ".join([self.get_leader_by_code(boss) for boss in self.get_bosses()])
     
     def is_same_boss(self, other):
+        # if is same mlb block return false
+        if self.is_mlb_block() and self.code == other.code:
+            return False
+        
         my_boss = self.get_bosses()
         others_boss = other.get_bosses()
         # return true if any of my bosses is in others bosses
         return any(boss in others_boss for boss in my_boss)
+    
+    def is_in_last_month(self):
+        for i in range(len(self.__class__.people_dict.last_month)):
+            if self.name == self.__class__.people_dict.last_month[i]["name"]:
+                return True
+        return False
          
 
 class PeopleDict:
-    def __init__(self, devs, dev_by_name, people_dict, mlb_devs_groups, mlb_group_lead):         
+    def __init__(self, devs, dev_by_name, people_dict, mlb_devs_groups, mlb_group_lead,leader_codes,last_month):         
         self.devs= devs
         self.dev_by_name= dev_by_name
         self.people_dict= people_dict
         self.mlb_devs_groups= mlb_devs_groups
         self.mlb_group_lead= mlb_group_lead
+        self.leader_codes=leader_codes
+        self.last_month=last_month
     
     def is_mlb_block(self, code):
         return code.startswith("G")
@@ -500,6 +394,11 @@ class PeopleDict:
         logging.info("-------")
         for k, v in self.dev_by_name.items():
             logging.info(f"{k}\t{v}")
+
+        logging.info("Last Month")
+        logging.info("-------")
+        for k in self.last_month:
+            logging.info(f"{k}")
 
 import unittest
 from unittest.mock import Mock

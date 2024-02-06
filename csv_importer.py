@@ -9,18 +9,18 @@ def create_people_db(people_file, last_month_file):
     devs = []
 
 
-    filename_input = "people.csv"  # Replace with the name of your CSV file
+
     leader_codes = {}  # Replace with the leader names and their codes
 
     # Load the CSV file into a list of dictionaries
-    with open(filename_input, "r") as file:
+    with open(people_file, "r") as file:
         reader = csv.DictReader(file)
         people_list = list(reader)
 
     # Convert the list of people into a dictionary with codes as keys
 
     # Load the CSV file into a list of dictionaries
-    with open("last_month.csv", "r") as file:
+    with open(last_month_file, "r") as file:
         reader = csv.DictReader(file)
         last_month = list(reader)
 
@@ -114,6 +114,8 @@ def create_people_db(people_file, last_month_file):
         people_dict,
         mlb_devs_groups,
         mlb_group_lead,
+        leader_codes,
+        last_month,
     )
 
 if __name__ == "__main__":
