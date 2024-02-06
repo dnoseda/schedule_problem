@@ -15,7 +15,8 @@ class RotationSchedule:
     def rule_adjacent_bosses(self):
         #TODO check same bosses in mlb block
         ret = 0
-        for i in range(self.get_half_point()-1):
+        for i in range(self.get_half_point()):
+            
             if Person(self.get_rota1_pos(i)).is_same_boss(
                 Person(self.get_rota1_pos(i+1))):
                 ret += 1
@@ -28,6 +29,8 @@ class RotationSchedule:
             if Person(self.get_rota2_pos(i)).is_same_boss(
                 Person(self.get_rota1_pos(i+1))):
                 ret += 1
+            
+            #print(f"Checking {i} {self.get_rota1_pos(i)} {self.get_rota2_pos(i)} {ret}")
         return ret
     
     def rule_same_overlaping_bosses(self):
@@ -123,9 +126,9 @@ class RotationSchedule:
 
     def rearrange_mlb_blocks(self):
         for i in range(self.get_half_point()):
-            print(f"{i} {self.get_rota1_pos(i)} {self.get_rota2_pos(i)}")
+            #print(f"{i} {self.get_rota1_pos(i)} {self.get_rota2_pos(i)}")
             if Person(self.get_rota1_pos(i)).is_mlb_block():
-                print("Swapp")
+                #print("Swapp")
                 self.rota[i], self.rota[i+self.get_half_point()] = self.rota[i+self.get_half_point()], self.rota[i]
                 
     
@@ -253,6 +256,8 @@ class RotationSchedule:
         data.append(["Week","Code","Dev"   ,"leader","","Code","Dev","leader"])
         for i in range(self.get_half_point()):
             dev1,dev2 = Person(self.get_rota1_pos(i)), Person(self.get_rota2_pos(i))
+            if dev1.is_mlb_block():
+                dev1,dev2=dev2,dev1
             data.append([
                 str(i+1),
                 dev1.code,
