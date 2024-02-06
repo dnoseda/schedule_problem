@@ -82,6 +82,8 @@ def main():
     except KeyboardInterrupt:
         print("Program interrupted")    
 
+    s.rearrange_mlb_blocks()
+
     s.debug=True
     s.pretty_print()
     print("rota {}".format(",".join(s.rota)))
@@ -114,6 +116,7 @@ if __name__ == "__main__":
            s.rota = sys.argv[2][3:].split(",")
            
         s.debug=True
+        s.rearrange_mlb_blocks()
         s.pretty_print()
         s.print_schedule()
         logging.debug(f"Fitness {s.fitness()}")
