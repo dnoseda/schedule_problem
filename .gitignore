@@ -6,3 +6,5 @@ treeMapper.html
 *.xlsx
 *.xlsx#
 __pycache__
+log.log
+nohup.out

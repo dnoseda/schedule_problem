@@ -15,8 +15,14 @@ def execute_algorithm(s, max_iterations):
     for i in range(max_iterations):
         random_position = random.randint(0, len(s.rota) - 1)
         logging.info(random_position)
+        if s.fitness() == 0:
+            break
         for from_pos in range(len(s.rota)):
+            if s.fitness() == 0:
+                break
             for to_pos in range(len(s.rota)):
+                if s.fitness() == 0:
+                    break
                 logging.info(f"[{i:02d}] {from_pos:02d} -> {to_pos:02d}: current fitness {s.fitness():03d}")
                 to_pos_with_offset = to_pos + random_position
                 before_fitness = s.fitness()
@@ -65,8 +71,10 @@ def main():
     ## repeating N same operation
     ## get random position to start and another random position to move
     ## move block and check if fitness improves
-
-    execute_algorithm(s, 2)
+    try:
+        execute_algorithm(s, 10000)
+    except KeyboardInterrupt:
+        print("Program interrupted")    
 
     s.debug=True
     s.pretty_print()
@@ -80,6 +88,8 @@ def main():
     print(f"len unique devs: {len(set(peopleDict.devs))} len unique rota: {len(set(s.rota))}")
 
 if __name__ == "__main__":
+    #catch program interruption
+    
     print(f"Called with ${sys.argv}")
     
     if len(sys.argv) > 1 and sys.argv[1] == "-f":

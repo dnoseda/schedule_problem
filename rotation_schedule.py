@@ -181,6 +181,10 @@ class RotationSchedule:
 
         original_rota = self.rota.copy()
 
+        # TODO check not spliting mlb blocks between rotas
+
+        #FIXME: not check if mlb block is always in rota2, as positions can be swapped between rotas
+
     
         # Extract the cell blocks to swap
         for i in range(dev_from_size):
@@ -196,18 +200,26 @@ class RotationSchedule:
             self.insert_cell(adjusted_to, dev_from.code)
 
         if len(set(self.rota)) != len(set(original_rota)) or len(self.rota) != len(original_rota):
-            logging.error(f"Err len changed {len(set(self.rota))} {len(set(original_rota))} {len(self.rota)} {len(original_rota)}")
-            self.debug=True
-            logging.error("Rota After:")
-            
-            self.print_rota_with_pos(from_, to)
             
             self.rota = original_rota
+            logging.error("Len changed!!! To check in a test {} and {} from: {} to: {} ".format(
+                ",".join(self.get_rota1()),
+                ",".join(self.get_rota2()),
+                from_,
+                to ))
 
-            logging.error("Rota Before:")
-            self.print_rota_with_pos(from_,to)
-            
-            raise Exception(f"Err len changed {from_} {to} {dev_from.code} {dev_to.code}") #FIXME just report this with all parameters and rota state for new test cases, then perform rollback and return False 
+            return False
+
+        for idx, dev in enumerate(self.rota):
+            if Person(dev).is_mlb_block():
+                if not MLBBlock(idx, self.rota).is_valid():
+                    self.rota = original_rota
+                    logging.error("MLB block not valid!!! To check in a test {} and {} from: {} to: {} ".format(
+                        ",".join(self.get_rota1()),
+                        ",".join(self.get_rota2()),
+                        from_,
+                        to ))
+                    return False
 
         
         
@@ -377,13 +389,25 @@ To add a second length parameter for how many cells should be moved back from th
 
 
 
-class MLBBlock:
+class MLBBlock:    
     def __init__(self, mlb_cell,rota):
         self.first_cell_pos = mlb_cell
         self.second_cell_pos = mlb_cell+1
+        self.rota = rota
         if self.second_cell_pos >= len(rota) or rota[self.first_cell_pos] != rota[self.second_cell_pos]:
             self.first_cell_pos = mlb_cell-1
             self.second_cell_pos = mlb_cell            
+        
+    def is_valid(self):
+        widhin_range = self.first_cell_pos < len(self.rota) and self.second_cell_pos < len(self.rota)
+        if not widhin_range:
+            return False
+        
+        not_negative = self.first_cell_pos >= 0 and self.second_cell_pos >= 0
+        if not not_negative:
+            return False
+        
+        return self.rota[self.first_cell_pos] == self.rota[self.second_cell_pos]
         
 
     def get_first_cell_pos(self):
@@ -416,8 +440,17 @@ class Person:
     def get_boss_code(self):
         return self.code[2]
     
+    def get_bosses(self):
+        if not self.is_mlb_block():
+            return [self.get_boss_code()]
+        
+        return self.__class__.people_dict.mlb_group_lead[self.code]
+    
     def is_same_boss(self, other):
-        return self.get_boss_code() == other.get_boss_code() # TODO consider same boss as mlb block
+        my_boss = self.get_bosses()
+        others_boss = other.get_bosses()
+        # return true if any of my bosses is in others bosses
+        return any(boss in others_boss for boss in my_boss)
          
 
 class PeopleDict:
