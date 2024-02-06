@@ -60,7 +60,7 @@ def main():
             MLB blocks can only be moved within rota2
     """
 
-    peopleDict = create_people_db("people.csv", "last_month.csv")
+    peopleDict = create_people_db("people.csv", "last_month.csv","mlb_groups.csv")
 
     s = RotationSchedule()
     s.rota = peopleDict.devs
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "-f":
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
         
-        peopleDict = create_people_db("people.csv", "last_month.csv")
+        peopleDict = create_people_db("people.csv", "last_month.csv","mlb_groups.csv")
 
         s = RotationSchedule()
         s.rota = peopleDict.devs

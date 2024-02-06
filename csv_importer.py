@@ -4,50 +4,8 @@ from itertools import combinations
 
 def get_boss(code):
     return code[2]
-def has_same_boss(pair):
-    return get_boss(pair[0]) == get_boss(pair[1])
 
-def arrange(devs):
-    all_pairs = list(combinations(devs, 2))
-
-    print(f"All Pairs {len(all_pairs)}")
-
-    disjointed_pairs = []
-    for pair in all_pairs:
-        if not any(set(pair) & set(disjointed_pair) for disjointed_pair in disjointed_pairs):
-            disjointed_pairs.append(pair)
-
-    print(f"Disjointed {len(disjointed_pairs)}")
-    
-    valid_pairs = [pair for pair in disjointed_pairs if not has_same_boss(pair)]
-
-    print(f"Valid Pairs {len(valid_pairs)}")
-
-    left_over_devs = devs.copy()
-    for pair in valid_pairs:
-        left_over_devs.remove(pair[0])
-        left_over_devs.remove(pair[1])
-    
-    print(f"Left Over Devs {len(left_over_devs)}\n{left_over_devs}")
-
-    should_insert = False
-    temp_pair = []
-    for dev in left_over_devs:
-        temp_pair.append(dev)
-        if should_insert:            
-            valid_pairs.append(temp_pair)
-            temp_pair = []
-        
-        should_insert = not should_insert
-    
-
-    for idx, pair in enumerate(valid_pairs):
-        print(f"Pair: {idx}: {pair}")
-
-    
-    return disjointed_pairs
-
-def create_people_db(people_file, last_month_file):
+def create_people_db(people_file, last_month_file, mlb_groups_file):
     people_dict ={}
     devs = []
 
@@ -66,6 +24,10 @@ def create_people_db(people_file, last_month_file):
     with open(last_month_file, "r") as file:
         reader = csv.DictReader(file)
         last_month = list(reader)
+    
+    with open(mlb_groups_file, "r") as file:
+        reader = csv.DictReader(file)
+        mlb_groups = list(reader)
 
     devs = []
     dev_by_name = {}
@@ -114,21 +76,20 @@ def create_people_db(people_file, last_month_file):
     print(">>> MLB debs")
     print(mlb_devs)
 
-    mlb_devs_arranged_blocks = arrange(mlb_devs)
+    mlb_devs_arranged_blocks = []
 
     mlb_devs_groups ={} # dev code -> group code
     mlb_group_lead ={} # group code -> leader code
-    #FIXME should arrange mlb blocks always with 2 leaders, if possible
 
-    for i in range(len(mlb_devs_arranged_blocks)):
-        pair = mlb_devs_arranged_blocks[i]
-        group_id = i + 1
-        group_code ="G_{:02d}".format(group_id)
+    for i in range(len(mlb_groups)):
+        pair = [dev_by_name[mlb_groups[i]["dev1"]], dev_by_name[mlb_groups[i]["dev2"]]]
+        group_id = mlb_groups[i]["group"]
+
+        group_code ="G_{:02d}".format(int(group_id))
         mlb_devs_groups[pair[0]] = group_code
         mlb_devs_groups[pair[1]] = group_code
 
-        mlb_group_lead[group_code] = list(set([get_boss(pair[0]),get_boss(pair[1])]))
-        
+        mlb_group_lead[group_code] = list(set([get_boss(pair[0]),get_boss(pair[1])])) 
         
         
 
@@ -161,4 +122,4 @@ def create_people_db(people_file, last_month_file):
     )
 
 if __name__ == "__main__":
-    create_people_db("people.csv", "last_month.csv")
+    create_people_db("people.csv", "last_month.csv","mlb_groups.csv")
