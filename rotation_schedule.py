@@ -124,14 +124,6 @@ class RotationSchedule:
 
                 logging.info(f"{rota1_person.code}\t{rota1_person.name}\t{rota2_person.code}\t{rota2_person.name}")
 
-    def rearrange_mlb_blocks(self):
-        for i in range(self.get_half_point()):
-            #print(f"{i} {self.get_rota1_pos(i)} {self.get_rota2_pos(i)}")
-            if Person(self.get_rota1_pos(i)).is_mlb_block():
-                #print("Swapp")
-                self.rota[i], self.rota[i+self.get_half_point()] = self.rota[i+self.get_half_point()], self.rota[i]
-                
-    
     def get_code_pos(self, pos):
         return self.rota[pos%len(self.rota)]
     
