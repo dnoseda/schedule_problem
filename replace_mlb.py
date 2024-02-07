@@ -58,9 +58,9 @@ def main():
     """
 
     parser = argparse.ArgumentParser(description='Rearrange on call schedule.')
-    parser.add_argument('-f', '--fitness', help='Execute fitness', required=False)
+    parser.add_argument('-f', '--fitness', action="store_true",help='Execute fitness', required=False)
     parser.add_argument('-R', '--rota', help='Schedule to test in the format {:02d}[A-Z] comma separated', required=False)
-    parser.add_argument('-i', '--iterations', help='Number of iterations', default=1000, required=False)
+    parser.add_argument('-i', '--iterations',type=int, help='Number of iterations', default=1000, required=False)
     parser.add_argument('-p', '--people_file', help='People File', default="people.csv", required=False)
     parser.add_argument('-l', '--last_month_file', help='Last Month File', default="last_month.csv", required=False)
     parser.add_argument('-g', '--mlb_groups_file', help='MLB Groups File', default="mlb_groups.csv", required=False)
