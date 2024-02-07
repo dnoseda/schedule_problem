@@ -80,8 +80,8 @@ def main():
         s.use_dict(peopleDict)
 
         # get rota from argument -R:"
-        if len(sys.argv) > 2 and sys.argv[2].startswith("-R:"):
-           s.rota = sys.argv[2][3:].split(",")
+        
+        s.rota = args.rota.split(",")
            
         s.debug=True
         
