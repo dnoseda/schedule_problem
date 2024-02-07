@@ -16,29 +16,40 @@ class RotationSchedule:
         #TODO check same bosses in mlb block
         ret = 0
         for i in range(self.get_half_point()):
+            #print(f"Checking {i} R1 {self.get_rota1_pos(i)} Next R1 {self.get_rota1_pos(i+1)} R2 {self.get_rota2_pos(i)} Next R2 {self.get_rota2_pos(i+1)}")
+
+            dev_rota1 = Person(self.get_rota1_pos(i))
+            next_dev_rota1 = Person(self.get_rota1_pos(i+1))
+            dev_rota2 = Person(self.get_rota2_pos(i))
+            next_dev_rota2 = Person(self.get_rota2_pos(i+1))
+
             
-            if Person(self.get_rota1_pos(i)).is_same_boss(
-                Person(self.get_rota1_pos(i+1))):
+            if dev_rota1.is_same_boss(
+                next_dev_rota1):
                 ret += 1
-            if Person(self.get_rota2_pos(i)).is_same_boss(
-                Person(self.get_rota2_pos(i+1))):
+
+            if dev_rota2.is_same_boss(
+                next_dev_rota2):
                 ret += 1
-            if Person(self.get_rota1_pos(i)).is_same_boss(
-                Person(self.get_rota2_pos(i+1))):
+
+            if dev_rota1.is_same_boss(
+                next_dev_rota2):
                 ret += 1
-            if Person(self.get_rota2_pos(i)).is_same_boss(
-                Person(self.get_rota1_pos(i+1))):
+
+            if dev_rota2.is_same_boss(
+                next_dev_rota1):
                 ret += 1
             
-            #print(f"Checking {i} {self.get_rota1_pos(i)} {self.get_rota2_pos(i)} {ret}")
+            
         return ret
     
     def rule_same_overlaping_bosses(self):
         ret = 0
-        for i in range(self.get_half_point()-1):
+        for i in range(self.get_half_point()):
+            #print(f"Checking {i} {self.get_rota1_pos(i)} {self.get_rota2_pos(i)}")
             if Person(self.get_rota1_pos(i)).is_same_boss(
                 Person(self.get_rota2_pos(i))):
-                ret += 1#TODO check same bosses in mlb block
+                ret += 1
         return ret
 
     def rule_experience(self):
@@ -185,11 +196,6 @@ class RotationSchedule:
 
         original_rota = self.rota.copy()
 
-        # TODO check not spliting mlb blocks between rotas
-
-        
-
-    
         # Extract the cell blocks to swap
         for i in range(dev_from_size):
             self.remove_cell(from_)
@@ -293,7 +299,7 @@ class MLBBlock:
 
     def get_second_cell_pos(self):
         return self.second_cell_pos
-        # TODO implement methods to ask stuff about mlb block
+        
     
 
 class Person:

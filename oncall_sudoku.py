@@ -58,7 +58,7 @@ def main():
     """
 
     parser = argparse.ArgumentParser(description='Rearrange on call schedule.')
-    parser.add_argument('-f', '--fitness', action="store_true",help='Execute fitness', required=False)
+    parser.add_argument('-f', '--fitness',action="store_true",help='Execute fitness',default=False, required=False)
     parser.add_argument('-R', '--rota', help='Schedule to test in the format {:02d}[A-Z] comma separated', required=False)
     parser.add_argument('-i', '--iterations',type=int, help='Number of iterations', default=1000, required=False)
     parser.add_argument('-p', '--people_file', help='People File', default="people.csv", required=False)
@@ -90,14 +90,7 @@ def main():
         logging.debug(f"Fitness {s.fitness()}")
         logging.debug(f"Rule Last Month {s.rule_dev_last_month()}")
         return
-    # read file of people from csv
-    # read file of last month from csv
-
-    # create mlb groups from people file
-
-    # iterate several times to get the best arrangement according to the fitness function
-    # each iteration replace blocks and check if fitness improves, rollback if not
-
+    
     
 
     peopleDict = create_people_db(args.people_file, args.last_month_file, args.mlb_groups_file)
@@ -106,10 +99,6 @@ def main():
     s.rota = peopleDict.devs
     s.use_dict(peopleDict)
     
-
-    ## repeating N same operation
-    ## get random position to start and another random position to move
-    ## move block and check if fitness improves
 
     try:
         execute_algorithm(s, args.iterations)
@@ -120,7 +109,7 @@ def main():
     s.debug=True
     s.pretty_print()
     print("rota {}".format(",".join(s.rota)))
-    # TODO print rota with proper format
+    
     peopleDict.pretty_print()
     
     print(f"original devs: {peopleDict.devs}")
