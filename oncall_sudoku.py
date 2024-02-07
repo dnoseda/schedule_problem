@@ -11,7 +11,7 @@ def get_random_pos():
     random.seed(current_time_ms)
     return random.randint(0, 1000)
 
-def execute_algorithm(s, max_iterations):
+def execute_algorithm(s, max_iterations, start_position):
     
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -25,6 +25,7 @@ def execute_algorithm(s, max_iterations):
             print("Fitness 0 exit")
             break
         for from_pos in range(len(s.rota)):
+            from_pos_with_offset = from_pos + start_position
             if s.fitness() == 0:
                 print("Fitness 0 exit")
                 break
@@ -32,11 +33,11 @@ def execute_algorithm(s, max_iterations):
                 if s.fitness() == 0:
                     print("Fitness 0 exit")
                     break
-                logging.info(f"[{i:02d}] {from_pos:02d} -> {to_pos:02d}: current fitness {s.fitness():03d}")
+                logging.info(f"[{i:02d}] {from_pos_with_offset:02d} -> {to_pos:02d}: current fitness {s.fitness():03d}")
                 to_pos_with_offset = to_pos + random_position
                 before_fitness = s.fitness()
                 s.stash()
-                if s.move_block(from_pos, to_pos_with_offset):
+                if s.move_block(from_pos_with_offset, to_pos_with_offset):
                     logging.debug("after move in r2")
                     s.pretty_print()
                     if  before_fitness < s.fitness():
@@ -64,6 +65,9 @@ def main():
     parser.add_argument('-p', '--people_file', help='People File', default="people.csv", required=False)
     parser.add_argument('-l', '--last_month_file', help='Last Month File', default="last_month.csv", required=False)
     parser.add_argument('-g', '--mlb_groups_file', help='MLB Groups File', default="mlb_groups.csv", required=False)
+    
+    # add parameter for the position on where to start the algorithm
+    parser.add_argument('-s', '--start_position',type=int, help='Start position', default=0, required=False)
     args = parser.parse_args()
 
     if args.fitness:
@@ -101,7 +105,7 @@ def main():
     
 
     try:
-        execute_algorithm(s, args.iterations)
+        execute_algorithm(s, args.iterations,args.start_position)
     except KeyboardInterrupt:
         print("Program interrupted")    
     
