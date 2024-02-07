@@ -4,6 +4,7 @@ import logging
 from rotation_schedule import RotationSchedule
 from csv_importer import create_people_db
 import time
+import argparse
 
 def get_random_pos():
     current_time_ms = int(time.time()*1000)
@@ -48,13 +49,6 @@ def execute_algorithm(s, max_iterations):
                     continue
 
 def main():
-    # read file of people from csv
-    # read file of last month from csv
-
-    # create mlb groups from people file
-
-    # iterate several times to get the best arrangement according to the fitness function
-    # each iteration replace blocks and check if fitness improves, rollback if not
 
     """
         Iterate max times
@@ -63,7 +57,50 @@ def main():
             MLB blocks can only be moved within rota2
     """
 
-    peopleDict = create_people_db("people.csv", "last_month.csv","mlb_groups.csv")
+    parser = argparse.ArgumentParser(description='Rearrange on call schedule.')
+    parser.add_argument('-f', '--fitness', help='Execute fitness', required=False)
+    parser.add_argument('-R', '--rota', help='Schedule to test in the format {:02d}[A-Z] comma separated', required=False)
+    parser.add_argument('-i', '--iterations', help='Number of iterations', default=1000, required=False)
+    parser.add_argument('-p', '--people_file', help='People File', default="people.csv", required=False)
+    parser.add_argument('-l', '--last_month_file', help='Last Month File', default="last_month.csv", required=False)
+    parser.add_argument('-g', '--mlb_groups_file', help='MLB Groups File', default="mlb_groups.csv", required=False)
+    args = parser.parse_args()
+
+    if args.fitness:
+        if not args.rota:
+            logging.error("Rota is required when using fitness")
+            return
+        
+        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+        
+        peopleDict = create_people_db(args.people_file, args.last_month_file, args.mlb_groups_file)
+
+        s = RotationSchedule()
+        s.rota = peopleDict.devs
+        s.use_dict(peopleDict)
+
+        # get rota from argument -R:"
+        if len(sys.argv) > 2 and sys.argv[2].startswith("-R:"):
+           s.rota = sys.argv[2][3:].split(",")
+           
+        s.debug=True
+        
+        s.pretty_print()
+        s.print_schedule()
+        logging.debug(f"Fitness {s.fitness()}")
+        logging.debug(f"Rule Last Month {s.rule_dev_last_month()}")
+        return
+    # read file of people from csv
+    # read file of last month from csv
+
+    # create mlb groups from people file
+
+    # iterate several times to get the best arrangement according to the fitness function
+    # each iteration replace blocks and check if fitness improves, rollback if not
+
+    
+
+    peopleDict = create_people_db(args.people_file, args.last_month_file, args.mlb_groups_file)
 
     s = RotationSchedule()
     s.rota = peopleDict.devs
@@ -75,7 +112,7 @@ def main():
     ## move block and check if fitness improves
 
     try:
-        execute_algorithm(s, 10000)
+        execute_algorithm(s, args.iterations)
     except KeyboardInterrupt:
         print("Program interrupted")    
     
@@ -100,24 +137,4 @@ if __name__ == "__main__":
     
     print(f"Called with ${sys.argv}")
     
-    if len(sys.argv) > 1 and sys.argv[1] == "-f":
-        logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
-        
-        peopleDict = create_people_db("people.csv", "last_month.csv", "mlb_groups.csv")
-
-        s = RotationSchedule()
-        s.rota = peopleDict.devs
-        s.use_dict(peopleDict)
-
-        # get rota from argument -R:"
-        if len(sys.argv) > 2 and sys.argv[2].startswith("-R:"):
-           s.rota = sys.argv[2][3:].split(",")
-           
-        s.debug=True
-        
-        s.pretty_print()
-        s.print_schedule()
-        logging.debug(f"Fitness {s.fitness()}")
-        logging.debug(f"Rule Last Month {s.rule_dev_last_month()}")
-    else:
-        main()
+    main()
