@@ -2,7 +2,7 @@ import random
 import sys
 import logging
 from rotation_schedule import RotationSchedule, Person
-from csv_importer import create_people_db
+from csv_importer import create_people_db,create_rota_from_file
 import time
 import argparse
 
@@ -48,6 +48,12 @@ def execute_algorithm(s, max_iterations, start_position):
                 else:
                     logging.debug("invalid move NOOP")
                     continue
+            if start_position > 0:
+                logging.info(f"after replaced: {start_position}")
+                break
+        if start_position > 0:
+                logging.info(f"after replaced: {start_position}")
+                break
 
 def main():
 
@@ -68,6 +74,10 @@ def main():
     
     # add parameter for the position on where to start the algorithm
     parser.add_argument('-s', '--start_position',type=int, help='Start position', default=0, required=False)
+
+    # add parameter for file to get current rota for minimal adjustment
+    parser.add_argument('-r', '--current_rota_file', help='Current Rota File', required=False)
+    
     args = parser.parse_args()
 
     if args.fitness:
@@ -97,11 +107,13 @@ def main():
     
     
 
-    peopleDict = create_people_db(args.people_file, args.last_month_file, args.mlb_groups_file)
+    peopleDict = create_people_db(args.people_file, args.last_month_file, args.mlb_groups_file,args.current_rota_file)
 
     s = RotationSchedule()
-    s.rota = peopleDict.devs
     s.use_dict(peopleDict)
+    logging.log(f"Rota fitness {s.fitness()} from file: {s.rota}")
+        
+    
     
 
     try:

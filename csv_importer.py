@@ -5,7 +5,20 @@ from itertools import combinations
 def get_boss(code):
     return code[2]
 
-def create_people_db(people_file, last_month_file, mlb_groups_file):
+def create_rota_from_file(rota_file):
+    rota = []
+    with open(rota_file, "r") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            rota.append(row["code"])
+    return rota
+
+def create_people_db(people_file, last_month_file, mlb_groups_file, current_rota_file):
+
+    """
+    TODO current_rota_file check if it is not None and use it as rota and take leaders, and other stuff from current
+    """
+
     people_dict ={}
     devs = []
 
