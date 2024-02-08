@@ -1,7 +1,7 @@
 import random
 import sys
 import logging
-from rotation_schedule import RotationSchedule
+from rotation_schedule import RotationSchedule, Person
 from csv_importer import create_people_db
 import time
 import argparse
@@ -105,6 +105,7 @@ def main():
     
 
     try:
+        print(f"\n\nstart_position: {args.start_position} {Person(s.rota[args.start_position]).name}\n\n")
         execute_algorithm(s, args.iterations,args.start_position)
     except KeyboardInterrupt:
         print("Program interrupted")    
