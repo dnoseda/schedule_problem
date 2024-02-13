@@ -1,4 +1,5 @@
 import logging
+import json
 
 
 
@@ -6,10 +7,27 @@ class RotationSchedule:
     def __init__(self):
         self.debug = False
         self.rota = []
+        self.peopleDict = None
 
     def use_dict(self, peopleDict):
-        Person.init_dict(peopleDict)       
-   
+        self.peopleDict = peopleDict
+        Person.init_dict(peopleDict)
+        
+
+    def save_state(self, filename):
+        state = {
+            "rota": self.rota,
+            "peopleDict": self.peopleDict
+        }
+        with open(filename, 'w') as f:
+            f.write(json.dumps(state))
+    
+    def load_state(self, filename):
+        with open(filename, 'r') as f:
+            state = json.loads(f.read())
+            self.rota = state["rota"]
+            self.peopleDict = state["peopleDict"]
+            Person.init_dict(self.peopleDict)
     
     
     def rule_adjacent_bosses(self):
