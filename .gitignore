@@ -8,3 +8,4 @@ treeMapper.html
 __pycache__
 log.log
 nohup.out
+state.json

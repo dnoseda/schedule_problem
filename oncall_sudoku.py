@@ -111,7 +111,8 @@ def main():
 
     s = RotationSchedule()
     s.use_dict(peopleDict)
-    logging.log(f"Rota fitness {s.fitness()} from file: {s.rota}")
+    s.rota = peopleDict.devs
+    print(f"Rota fitness {s.fitness()} from file: {s.rota}")
         
     
     
@@ -119,10 +120,11 @@ def main():
     try:
         print(f"\n\nstart_position: {args.start_position} {Person(s.rota[args.start_position]).name}\n\n")
         execute_algorithm(s, args.iterations,args.start_position)
+        
     except KeyboardInterrupt:
         print("Program interrupted")    
     
-
+    s.save_state("state.json")
     s.debug=True
     s.pretty_print()
     print("rota {}".format(",".join(s.rota)))

@@ -20,11 +20,11 @@ class RotationSchedule:
             "peopleDict": self.peopleDict
         }
         with open(filename, 'w') as f:
-            f.write(json.dumps(state))
+            f.write(json.dumps(state, cls=PersonEncoder))
     
     def load_state(self, filename):
         with open(filename, 'r') as f:
-            state = json.loads(f.read())
+            state = json.loads(f.read(), cls=PersonDecoder)
             self.rota = state["rota"]
             self.peopleDict = state["peopleDict"]
             Person.init_dict(self.peopleDict)
@@ -318,7 +318,19 @@ class MLBBlock:
     def get_second_cell_pos(self):
         return self.second_cell_pos
         
+
+class PersonDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        json.JSONDecoder.__init__(self, object_hook=self.dict_to_person, *args, **kwargs)
+
+    def dict_to_person(self, d):
+        return Person(d["code"])
     
+class PersonEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, PeopleDict):
+            return obj.__dict__
+        return json.JSONEncoder.default(self, obj)
 
 class Person:
     people_dict = None
@@ -382,6 +394,18 @@ class PeopleDict:
         self.mlb_group_lead= mlb_group_lead
         self.leader_codes=leader_codes
         self.last_month=last_month
+    
+    def to_json(self):
+        obj = {
+            "devs": self.devs,
+            "dev_by_name": self.dev_by_name,
+            "people_dict": self.people_dict,
+            "mlb_devs_groups": self.mlb_devs_groups,
+            "mlb_group_lead": self.mlb_group_lead,
+            "leader_codes": self.leader_codes,
+            "last_month": self.last_month
+        }
+        return json.dumps(obj)
     
     def is_mlb_block(self, code):
         return code.startswith("G")

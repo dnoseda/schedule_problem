@@ -25,8 +25,10 @@ def create_people_db(people_file, last_month_file, mlb_groups_file, current_rota
    
 
     if current_rota_file == None:
+        print("Generating from people file")
         return generate_people_db(people_file, last_month_file, mlb_groups_file)
     else:
+        print("Generating With current rotation")
         return generate_people_db_from_current_rota(people_file, last_month_file, mlb_groups_file, current_rota_file)
 
 def generate_people_db(people_file, last_month_file, mlb_groups_file):
