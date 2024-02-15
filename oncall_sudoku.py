@@ -21,19 +21,13 @@ def execute_algorithm(s, max_iterations, start_position):
         random_position = get_random_pos() % len(s.rota)
 
         logging.info(random_position)
-        if s.fitness() == 0:
-            print("Fitness 0 exit")
-            break
         for from_pos in range(len(s.rota)):
             from_pos_with_offset = from_pos + start_position
-            if s.fitness() == 0:
-                print("Fitness 0 exit")
-                break
             for to_pos in range(len(s.rota)):
                 if s.fitness() == 0:
                     print("Fitness 0 exit")
-                    break
-                logging.info(f"[{i:02d}] {from_pos_with_offset:02d} -> {to_pos:02d}: current fitness {s.fitness():03d}")
+                    return
+                print(f"[{i:02d}] {from_pos_with_offset:02d} -> {to_pos:02d}: current fitness {s.fitness():03d}")
                 to_pos_with_offset = to_pos + random_position
                 before_fitness = s.fitness()
                 s.stash()
@@ -127,7 +121,7 @@ def main():
     print(f"Rota fitness {s.fitness()} from file: {s.rota}")
         
     
-    
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     try:
         #print(f"\n\nstart_position: {args.start_position} {Person(s.rota[args.start_position]).name}\n\n")
