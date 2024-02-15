@@ -187,11 +187,7 @@ class RotationSchedule:
         from_ = from_% len(self.rota)
         to = to % len(self.rota)
 
-
         
-        
-        
-
         
         dev_from = Person(self.get_code_pos(from_))
         dev_to = Person(self.get_code_pos(to))
@@ -210,8 +206,8 @@ class RotationSchedule:
         
         if from_ == to:
             #print("Err nop same pos")
-            return False    
-
+            return False
+    
         original_rota = self.rota.copy()
 
         # Extract the cell blocks to swap
@@ -220,7 +216,10 @@ class RotationSchedule:
         for i in range(dev_to_size):
             self.insert_cell(from_, dev_to.code)
 
-        adjusted_to = to - dev_from_size + dev_to_size
+        adjusted_to = to
+        if to >from_:
+            adjusted_to = to - dev_from_size + dev_to_size
+
         for i in range(dev_to_size):
             self.remove_cell(adjusted_to)
 
@@ -523,7 +522,7 @@ class TestRotationSchedule(unittest.TestCase):
             ["12I13_","00A1x","01B2_","48H49_","05E6_","44J45_","10C11_","35H36_","37B38_","38H39_","27A28_","28G29x","43E44_","08H9_","23D24x","47G48_","16B17_","20F21_","G_01","G_01","46H47_","G_03","G_03","21J22x","G_02","G_02","52A53_","G_04","G_04","03A4x","G_05","G_05","G_07","G_07"],
             21,
             9,
-            ["49F50_","36D37_","40F41_","41I42x","14B15x","06F7x","09A10x","34I35_","13A14_","32F33_","04D5_","02C3x","39G40_","53B54_","15E16x","50A51x","25G26_","17H18_","07G8_","G_06","G_06","31B32_","19A20_","51H52_","45E46_","18D19_","24J25x","11G12_","33J34_","22E23_","42G43_","29A30_","26E27_","30G31_","12I13_","00A1x","01B2_","48H49_","05E6_","44J45_","10C11_","35H36_","37B38_","38H39_","27A28_","28G29x","43E44_","08H9_","23D24x","47G48_","16B17_","20F21_","G_01","G_01","46H47_","G_03","G_03","21J22x","G_02","G_02","52A53_","G_04","G_04","03A4x","G_05","G_05","G_07","G_07"]
+            ["49F50_","36D37_","40F41_","41I42x","14B15x","06F7x","09A10x","34I35_","13A14_","31B32_","04D5_","02C3x","39G40_","53B54_","15E16x","50A51x","25G26_","17H18_","07G8_","32F33_","G_06","G_06","19A20_","51H52_","45E46_","18D19_","24J25x","11G12_","33J34_","22E23_","42G43_","29A30_","26E27_","30G31_","12I13_","00A1x","01B2_","48H49_","05E6_","44J45_","10C11_","35H36_","37B38_","38H39_","27A28_","28G29x","43E44_","08H9_","23D24x","47G48_","16B17_","20F21_","G_01","G_01","46H47_","G_03","G_03","21J22x","G_02","G_02","52A53_","G_04","G_04","03A4x","G_05","G_05","G_07","G_07"]
         )
 
 if __name__ == "__main__":
