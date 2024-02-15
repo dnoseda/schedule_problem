@@ -24,9 +24,12 @@ class RotationSchedule:
     
     def load_state(self, filename):
         with open(filename, 'r') as f:
-            state = json.loads(f.read(), cls=PersonDecoder)
+            state = json.loads(f.read())
+            
             self.rota = state["rota"]
-            self.peopleDict = state["peopleDict"]
+            
+            self.peopleDict = PeopleDict.from_dict(state["peopleDict"])
+            print(f"State: {self.peopleDict}")
             Person.init_dict(self.peopleDict)
     
     
@@ -341,6 +344,11 @@ class Person:
         # exit if no dict
         if not self.__class__.people_dict:
             raise Exception("People dict not initialized")
+        
+        # check if self.__class__.people_dict is a PeopleDict instance, if not convert it
+        if not isinstance(self.__class__.people_dict, PeopleDict):
+            raise Exception(f"People dict is wrong type {type(self.__class__.people_dict)}")
+        
         self.name = self.__class__.people_dict.get_dev_name(code)
         self.code = code
 
@@ -393,6 +401,18 @@ class PeopleDict:
         self.mlb_group_lead= mlb_group_lead
         self.leader_codes=leader_codes
         self.last_month=last_month
+
+    @classmethod
+    def from_dict(cls, d):
+        return PeopleDict(
+                d["devs"],
+                d["dev_by_name"],
+                d["people_dict"],
+                d["mlb_devs_groups"],
+                d["mlb_group_lead"],
+                d["leader_codes"],
+                d["last_month"],
+            )
     
     def to_json(self):
         obj = {

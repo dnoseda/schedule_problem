@@ -59,6 +59,7 @@ def execute_algorithm(s, max_iterations, start_position):
 def generate_schedule(args):
     s = RotationSchedule()
     if args.current_rota_file != None:
+        print(f"State loaded from {args.current_rota_file}")
         s.load_state(args.current_rota_file)
     else:
         #TODO: Consider current rotation
@@ -120,6 +121,8 @@ def main():
         return
     
     s = generate_schedule(args)
+
+    print(f"generated {s}")
     
     print(f"Rota fitness {s.fitness()} from file: {s.rota}")
         
@@ -127,7 +130,7 @@ def main():
     
 
     try:
-        print(f"\n\nstart_position: {args.start_position} {Person(s.rota[args.start_position]).name}\n\n")
+        #print(f"\n\nstart_position: {args.start_position} {Person(s.rota[args.start_position]).name}\n\n")
         execute_algorithm(s, args.iterations,args.start_position)
         
     except KeyboardInterrupt:
