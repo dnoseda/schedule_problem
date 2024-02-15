@@ -13,25 +13,7 @@ def create_rota_from_file(rota_file):
             rota.append(row["code"])
     return rota
 
-def generate_people_db_from_current_rota(people_file, last_month_file, mlb_groups_file, current_rota_file):
-    """
-    TODO current_rota_file check if it is not None and use it as rota and take leaders, and other stuff from current
-    """
-    pass
-
-
-def create_people_db(people_file, last_month_file, mlb_groups_file, current_rota_file):
-
-   
-
-    if current_rota_file == None:
-        print("Generating from people file")
-        return generate_people_db(people_file, last_month_file, mlb_groups_file)
-    else:
-        print("Generating With current rotation")
-        return generate_people_db_from_current_rota(people_file, last_month_file, mlb_groups_file, current_rota_file)
-
-def generate_people_db(people_file, last_month_file, mlb_groups_file):
+def create_people_db(people_file, last_month_file, mlb_groups_file):
     people_dict ={}
     devs = []
 

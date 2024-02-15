@@ -54,6 +54,19 @@ def execute_algorithm(s, max_iterations, start_position):
         if start_position > 0:
                 logging.info(f"after replaced: {start_position}")
                 break
+        
+
+def generate_schedule(args):
+    s = RotationSchedule()
+    if args.current_rota_file != None:
+        s.load_state(args.current_rota_file)
+    else:
+        #TODO: Consider current rotation
+        peopleDict = create_people_db(args.people_file, args.last_month_file, args.mlb_groups_file)
+        
+        s.use_dict(peopleDict)
+        s.rota = peopleDict.devs
+    return s
 
 def main():
 
@@ -87,7 +100,8 @@ def main():
         
         logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
         
-        peopleDict = create_people_db(args.people_file, args.last_month_file, args.mlb_groups_file)
+        #TODO: Consider current rotation
+        peopleDict = create_people_db(args.people_file, args.last_month_file, args.mlb_groups_file,args.current_rota_file)
 
         s = RotationSchedule()
         s.rota = peopleDict.devs
@@ -105,13 +119,8 @@ def main():
         logging.debug(f"Rule Last Month {s.rule_dev_last_month()}")
         return
     
+    s = generate_schedule(args)
     
-
-    peopleDict = create_people_db(args.people_file, args.last_month_file, args.mlb_groups_file,args.current_rota_file)
-
-    s = RotationSchedule()
-    s.use_dict(peopleDict)
-    s.rota = peopleDict.devs
     print(f"Rota fitness {s.fitness()} from file: {s.rota}")
         
     
@@ -129,12 +138,12 @@ def main():
     s.pretty_print()
     print("rota {}".format(",".join(s.rota)))
     
-    peopleDict.pretty_print()
+    s.peopleDict.pretty_print()
     
-    print(f"original devs: {peopleDict.devs}")
+    print(f"original devs: {s.peopleDict.devs}")
 
-    print(f"original len devs: {len(peopleDict.devs)} len rota: {len(s.rota)} len rota1 {len(s.get_rota1())} len rota2 {len(s.get_rota2())} half point {s.get_half_point()}")
-    print(f"len unique devs: {len(set(peopleDict.devs))} len unique rota: {len(set(s.rota))}")
+    print(f"original len devs: {len(s.peopleDict.devs)} len rota: {len(s.rota)} len rota1 {len(s.get_rota1())} len rota2 {len(s.get_rota2())} half point {s.get_half_point()}")
+    print(f"len unique devs: {len(set(s.peopleDict.devs))} len unique rota: {len(set(s.rota))}")
 
     s.print_schedule()
     print(f"Fitness {s.fitness()}")
