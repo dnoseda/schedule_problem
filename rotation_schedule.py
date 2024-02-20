@@ -20,7 +20,7 @@ class RotationSchedule:
             "peopleDict": self.peopleDict
         }
         with open(filename, 'w') as f:
-            f.write(json.dumps(state, cls=PersonEncoder))
+            f.write(json.dumps(state, cls=PersonEncoder, indent=4))
     
     def load_state(self, filename):
         with open(filename, 'r') as f:
@@ -321,13 +321,6 @@ class MLBBlock:
         return self.second_cell_pos
         
 
-class PersonDecoder(json.JSONDecoder):
-    def __init__(self, *args, **kwargs):
-        json.JSONDecoder.__init__(self, object_hook=self.dict_to_person, *args, **kwargs)
-
-    def dict_to_person(self, d):
-        return Person(d["code"])
-    
 class PersonEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, PeopleDict):
@@ -356,7 +349,11 @@ class Person:
         return self.code.startswith("G")
     
     def has_experience(self):
-        return not self.code.endswith("x") and not self.is_mlb_block()
+        if self.is_in_last_month():
+            return True
+        if self.is_mlb_block():
+            return False
+        return self.code.endswith("x")
     
     def get_boss_code(self):
         return self.code[2]

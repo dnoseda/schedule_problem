@@ -27,7 +27,7 @@ def execute_algorithm(s, max_iterations, start_position):
                 if s.fitness() == 0:
                     print("Fitness 0 exit")
                     return
-                print(f"[{i:02d}] {from_pos_with_offset:02d} -> {to_pos:02d}: current fitness {s.fitness():03d}")
+                logging.info(f"[{i:02d}] {from_pos_with_offset:02d} -> {to_pos:02d}: current fitness {s.fitness():03d}")
                 to_pos_with_offset = to_pos + random_position
                 before_fitness = s.fitness()
                 s.stash()
